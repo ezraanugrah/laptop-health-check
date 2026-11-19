@@ -1,0 +1,5 @@
+# Jangan pernah mengunggah token/konfigurasi lokal atau dokumen internal ke Vercel.
+.env*
+.vercel
+.gitignore
+README.md

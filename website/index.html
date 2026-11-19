@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Laptop Health Check — Cek kesehatan hardware Mac secara offline</title>
+    <meta
+      name="description"
+      content="Laptop Health Check memeriksa kondisi hardware MacBook (baterai, SSD, RAM, CPU, suhu, kipas, GPU, Activation Lock/MDM) sepenuhnya offline, langsung dari flashdisk."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+    <!-- Tema diterapkan sebelum halaman tampil (file terpisah agar CSP tetap ketat). -->
+    <script src="/theme-init.js"></script>
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip" href="#main" data-i18n="skip">Langsung ke isi</a>
+
+    <header class="topbar">
+      <div class="wrap topbar-inner">
+        <a class="brand" href="#top" aria-label="Laptop Health Check">
+          <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+            <rect x="3" y="6" width="26" height="17" rx="3" />
+            <path d="M1 26h30" />
+            <path d="M9 15h4l2-4 3 8 2-4h3" />
+          </svg>
+          <span>Laptop Health Check</span>
+        </a>
+        <nav class="nav" aria-label="Navigasi" data-i18n-attr="aria-label:nav.label">
+          <a href="#fitur" data-i18n="nav.features">Fitur</a>
+          <a href="#privasi" data-i18n="nav.privacy">Privasi</a>
+          <a href="#cara-pakai" data-i18n="nav.howto">Cara pakai</a>
+          <a href="#status" data-i18n="nav.status">Status</a>
+        </nav>
+        <div class="controls">
+          <button type="button" class="chip" id="lang-toggle" aria-label="Ganti bahasa ke English">
+            <span aria-hidden="true" id="lang-label">EN</span>
+          </button>
+          <button type="button" class="chip" id="theme-toggle" aria-label="Ganti tema">
+            <svg class="icon icon-sun" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+            </svg>
+            <svg class="icon icon-moon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a6.6 6.6 0 0 0 11 11Z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="hero" id="top">
+        <div class="wrap hero-inner">
+          <p class="badge"><span class="dot" aria-hidden="true"></span><span data-i18n="hero.badge">Beta · Mac Intel</span></p>
+          <h1 data-i18n="hero.title">Cek kesehatan hardware MacBook, langsung dari flashdisk.</h1>
+          <p class="lead" data-i18n="hero.lead">
+            Laptop Health Check membaca kondisi baterai, SSD, RAM, CPU, suhu, kipas, GPU, dan status Activation Lock/MDM — sepenuhnya
+            offline, tanpa akun, tanpa mengirim data.
+          </p>
+          <div class="actions">
+            <span class="btn btn-disabled" aria-disabled="true" data-i18n="hero.download">Unduh — segera tersedia</span>
+            <a class="btn btn-ghost" href="#cara-pakai" data-i18n="hero.howto">Lihat cara pakai</a>
+          </div>
+          <p class="fine" data-i18n="hero.note">Versi beta belum dirilis publik. Saat ini baru diuji di MacBook Pro Intel.</p>
+        </div>
+      </section>
+
+      <section class="section" id="fitur" aria-labelledby="fitur-title">
+        <div class="wrap">
+          <h2 id="fitur-title" data-i18n="features.title">Apa yang diperiksa</h2>
+          <p class="section-lead" data-i18n="features.lead">
+            Hasil terukur dibedakan dari hasil yang dikonfirmasi pengguna. Data yang tidak terbaca ditandai “Tidak diketahui”, tidak
+            pernah “Sehat”.
+          </p>
+          <div class="grid grid-3">
+            <article class="card">
+              <h3 data-i18n="features.auto.title">9 pemeriksaan otomatis</h3>
+              <ul class="list">
+                <li data-i18n="features.auto.1">Sistem dan spesifikasi</li>
+                <li data-i18n="features.auto.2">Baterai: kapasitas & siklus pengisian</li>
+                <li data-i18n="features.auto.3">SSD/HDD: SMART, TRIM, ruang kosong</li>
+                <li data-i18n="features.auto.4">RAM & memori</li>
+                <li data-i18n="features.auto.5">CPU & status termal</li>
+                <li data-i18n="features.auto.6">Suhu dan kipas</li>
+                <li data-i18n="features.auto.7">GPU</li>
+                <li data-i18n="features.auto.8">Activation Lock & MDM (dengan keterbatasan deteksi)</li>
+              </ul>
+            </article>
+            <article class="card">
+              <h3 data-i18n="features.interactive.title">10 tes interaktif</h3>
+              <ul class="list">
+                <li data-i18n="features.interactive.1">Layar: pola warna layar penuh</li>
+                <li data-i18n="features.interactive.2">Keyboard, Trackpad, Touch Bar</li>
+                <li data-i18n="features.interactive.3">Speaker kiri/kanan/stereo</li>
+                <li data-i18n="features.interactive.4">Kamera & mikrofon (dengan persetujuan)</li>
+                <li data-i18n="features.interactive.5">Wi-Fi & Bluetooth (tanpa memindai)</li>
+                <li data-i18n="features.interactive.6">Port USB/Thunderbolt</li>
+              </ul>
+            </article>
+            <article class="card">
+              <h3 data-i18n="features.report.title">Laporan PDF & JSON</h3>
+              <ul class="list">
+                <li data-i18n="features.report.1">Bahasa Indonesia & English</li>
+                <li data-i18n="features.report.2">Anda yang memilih lokasi penyimpanan</li>
+                <li data-i18n="features.report.3">Tes yang belum dijalankan tidak pernah dihitung lulus</li>
+                <li data-i18n="features.report.4">Nomor seri hanya bila Anda pilih</li>
+              </ul>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section alt" id="privasi" aria-labelledby="privasi-title">
+        <div class="wrap">
+          <h2 id="privasi-title" data-i18n="privacy.title">Privasi & keamanan</h2>
+          <div class="grid grid-2">
+            <div class="point">
+              <h3 data-i18n="privacy.offline.title">100% offline</h3>
+              <p data-i18n="privacy.offline.text">Tanpa koneksi internet, akun, telemetri, atau iklan. Tidak ada data perangkat yang dikirim ke mana pun.</p>
+            </div>
+            <div class="point">
+              <h3 data-i18n="privacy.readonly.title">Hanya membaca</h3>
+              <p data-i18n="privacy.readonly.text">Tidak mengubah pengaturan, kipas, daya, Wi-Fi, atau Bluetooth. Tidak butuh password administrator.</p>
+            </div>
+            <div class="point">
+              <h3 data-i18n="privacy.media.title">Kamera & mikrofon terkunci</h3>
+              <p data-i18n="privacy.media.text">
+                Hanya dibuka di jendela tes terpisah setelah Anda setuju, paling lama 10 detik. Tidak ada foto atau video yang disimpan;
+                rekaman tes mikrofon hanya di memori lalu dihapus.
+              </p>
+            </div>
+            <div class="point">
+              <h3 data-i18n="privacy.serial.title">Data pribadi tetap di tempatnya</h3>
+              <p data-i18n="privacy.serial.text">
+                Nomor seri disembunyikan secara default. Isi flashdisk dan disk eksternal tidak dibaca. Nama perangkat Bluetooth/USB,
+                SSID, dan alamat MAC tidak ditampilkan.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="cara-pakai" aria-labelledby="cara-title">
+        <div class="wrap">
+          <h2 id="cara-title" data-i18n="howto.title">Cara pakai dari flashdisk</h2>
+          <ol class="steps">
+            <li><span data-i18n="howto.1">Simpan file .dmg Laptop Health Check ke flashdisk.</span></li>
+            <li><span data-i18n="howto.2">Colokkan ke Mac yang akan diperiksa, lalu klik dua kali file .dmg.</span></li>
+            <li><span data-i18n="howto.3">Klik dua kali “Laptop Health Check”. Aplikasi berjalan langsung dari DMG, tanpa instalasi.</span></li>
+            <li><span data-i18n="howto.4">Selesai: tutup aplikasi (⌘Q), lalu Eject DMG dan flashdisk.</span></li>
+          </ol>
+          <aside class="callout" aria-labelledby="gk-title">
+            <h3 id="gk-title" data-i18n="gatekeeper.title">Jika macOS menolak membuka aplikasi</h3>
+            <p data-i18n="gatekeeper.text">
+              Versi beta belum ditandatangani dan dinotarisasi Apple. Di macOS 14 atau lebih lama: Control-klik aplikasi → Buka. Di macOS 15
+              atau lebih baru: System Settings → Privacy & Security → “Open Anyway”.
+            </p>
+            <p class="warn" data-i18n="gatekeeper.warn">Jangan mematikan Gatekeeper atau SIP. Bila pemilik Mac tidak mengizinkan, jangan dipaksakan.</p>
+          </aside>
+        </div>
+      </section>
+
+      <section class="section alt" id="status" aria-labelledby="status-title">
+        <div class="wrap">
+          <h2 id="status-title" data-i18n="status.title">Status & keterbatasan</h2>
+          <dl class="status">
+            <div>
+              <dt data-i18n="status.tested.term">Sudah diuji</dt>
+              <dd data-i18n="status.tested.desc">MacBook Pro 16,2 (Intel) dengan macOS 26.</dd>
+            </div>
+            <div>
+              <dt data-i18n="status.as.term">Apple Silicon</dt>
+              <dd data-i18n="status.as.desc">Build ARM64 sudah ada, tetapi belum diuji di perangkat asli — belum didukung.</dd>
+            </div>
+            <div>
+              <dt data-i18n="status.sign.term">Tanda tangan Apple</dt>
+              <dd data-i18n="status.sign.desc">Belum ditandatangani Developer ID dan belum dinotarisasi.</dd>
+            </div>
+            <div>
+              <dt data-i18n="status.scope.term">Batas hasil</dt>
+              <dd data-i18n="status.scope.desc">Hasil bersifat indikasi, bukan pengganti Apple Diagnostics atau pemeriksaan teknisi resmi.</dd>
+            </div>
+          </dl>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="wrap footer-inner">
+        <p>© 2026 Laptop Health Check</p>
+        <p data-i18n="footer.privacy">Website ini tidak memakai cookie, analitik, atau font eksternal.</p>
+      </div>
+    </footer>
+  </body>
+</html>
