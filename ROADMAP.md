@@ -1,61 +1,67 @@
-# Roadmap — Laptop Health Check
+# Roadmap — Laptop Health Check (khusus macOS)
 
-Pengembangan dilakukan bertahap. **Setiap fase diakhiri laporan dan persetujuan sebelum lanjut ke fase berikutnya.**
+Pengembangan dilakukan bertahap. **Setiap fase, dan setiap checkpoint di dalam fase, diakhiri laporan dan persetujuan pemilik sebelum lanjut.**
 
 | Fase | Nama | Status |
 |---|---|---|
-| 0 | Persiapan environment & repo | ✅ Selesai |
-| 1 | Fondasi proyek | ✅ Selesai & disetujui |
-| 2 | Diagnostik inti macOS | ✅ Selesai, di `main` (PR #1, `21a5f43`) |
-| 3 | Diagnostik inti Windows + CI | 📝 Rencana draf ([PRD Fase 3](docs/FASE3-WINDOWS-PRD.md)), menunggu persetujuan |
-| 4 | Tes interaktif | Direncanakan |
-| 5 | Skor kesehatan & laporan PDF/JSON | Direncanakan |
-| 6 | Mode portable & packaging | Direncanakan |
-| 7 | QA & rilis 1.0 | Direncanakan |
-| — | Linux | Ditunda |
+| 1 | Foundation | ✅ Selesai |
+| 2 | macOS Core Diagnostics | ✅ Selesai untuk **Intel** (terverifikasi di MacBook Pro asli) · ⚠️ **Apple Silicon perlu validasi** di perangkat asli |
+| 3 | Interactive Hardware Testing | 🚧 Berjalan: 3.0 keamanan media terverifikasi (jalur tolak), Tes Layar dan Keyboard dibuat; kamera/mikrofon ditahan ([PRD Fase 3](docs/FASE3-INTERACTIVE-TESTING-PRD.md) §15) |
+| 4 | Reports & UI/UX | 🚧 Sebagian: tema Terang/Gelap dan bahasa Indonesia/English selesai; PDF/JSON dan riwayat direncanakan |
+| 5 | Distribution | Direncanakan |
+| — | Windows | ❌ Dibatalkan 19 Nov 2026 ([arsip](docs/archive/windows/FASE3-WINDOWS-PRD.md)) |
+| — | Linux | Tidak direncanakan |
 
-Prinsip yang berlaku di semua fase: offline-first, tanpa akun, tanpa telemetri, nomor seri disembunyikan secara default, dan **hanya data nyata** (tidak ada hasil simulasi yang ditampilkan sebagai diagnosis).
+Prinsip yang berlaku di semua fase: offline-first, tanpa akun, tanpa telemetri, nomor seri disembunyikan secara default, read-only terhadap hardware, dan **hanya data nyata** (tidak ada hasil simulasi yang ditampilkan sebagai diagnosis).
+
+Tingkat verifikasi: **L0** kompilasi · **L1** logika/parser (unit test + fixture) · **L2** smoke test di VM CI · **L3** Mac asli. Sebuah platform atau modul baru disebut "terverifikasi" setelah lolos L3.
 
 ---
 
-### Fase 0 — Persiapan ✅
-Git di-init (`main`), remote `origin` terhubung ke GitHub, dan environment dicek (Xcode CLT, Node, npm). Rust dipasang via rustup.
+### Fase 1 — Foundation ✅
+- Environment, repo Git, dan Rust.
+- Scaffold Tauri 2 + React 19 + TypeScript + Tailwind CSS v4.
+- Konfigurasi: identitas aplikasi, CSP offline, profil build hemat disk.
+- Struktur modular `platform/` (pembacaan) dan `diagnostics/` (penilaian).
+- Pemeriksaan **Sistem**, UI awal (sidebar, Ringkasan, Tentang), dan dokumen produk.
 
-### Fase 1 — Fondasi ✅
-- Scaffold Tauri 2 + React + TypeScript + Tailwind CSS v4 di folder proyek.
-- Konfigurasi awal: identitas aplikasi, jendela, CSP offline, target bundle (dmg/nsis), WebView2 offline, profil build hemat disk.
-- Struktur modular `diagnostics/` (penilaian) dan `platform/` (macOS/Windows).
-- Satu pemeriksaan aktif: **Sistem**. Pemeriksaan lain masih kerangka berstatus "Segera hadir".
-- UI awal: sidebar, Ringkasan, Tentang, halaman placeholder.
-- Dokumen PRD, ARCHITECTURE, ROADMAP, TASKS, dan CLAUDE.md, beserta keputusan produk.
-- Pemeriksaan: build, typecheck, clippy, fmt, test Rust + frontend. Aplikasi berjalan di macOS (mode dev dan produksi).
+### Fase 2 — macOS Core Diagnostics ✅ Intel · ⚠️ Apple Silicon
+- 9 pemeriksaan berbasis data asli: Sistem, Baterai, SSD/HDD, RAM, CPU & status termal, Suhu, Kipas, GPU, serta Activation Lock & MDM. Nomor seri bersifat *opt-in*.
+- SMC dibaca lewat FFI IOKit read-only. Semua batas ambang diuji; fixture tersanitasi berasal dari MacBookPro16,2.
+- Penyempurnaan dari Milestone 3.0 yang dipertahankan: kategori pemeriksaan, `HardwareSummary` ("Pemeriksaan belum lengkap"), banner pratinjau Apple Silicon, field data eksperimental, dan CI GitHub Actions untuk macOS Intel dan arm64.
+- Penyesuaian scope khusus macOS (branch `feature/macos-only`): kode Windows dikeluarkan.
 
-### Fase 2 — Diagnostik inti macOS ✅
-Baterai, SSD/HDD, RAM, CPU & status termal, temperatur, kipas, GPU, nomor seri (*opt-in*), serta Activation Lock & MDM di macOS. Sudah diuji di MacBook Intel asli; jalur Apple Silicon sudah dibuat tetapi belum diverifikasi (lihat TASKS.md).
-**Kriteria selesai:** setiap pemeriksaan memberi status dari data nyata, atau "Tidak diketahui"/"Tidak berlaku" beserta alasannya. Dilengkapi unit test ambang penilaian dengan *fixture* dari perangkat asli dan uji di mesin nyata.
+**Sisa pekerjaan:** validasi di Mac Apple Silicon asli. Yang perlu dicek: pola sensor SMC, kipas, core P/E, format `system_profiler`, kapasitas baterai, dan `pmset`. Langkahnya adalah mengambil fixture dengan `sh scripts/capture-macos-fixtures.sh <perangkat>`, lalu menjalankan uji L3. Sampai saat itu, Apple Silicon tetap berstatus **Pratinjau**.
 
-### Fase 3 — Diagnostik inti Windows + CI
-- Implementasi `platform/windows/` dengan API native (Win32, WMI, DXGI, PDH, SetupAPI/IOCTL), tanpa admin, tanpa driver kernel, tanpa PowerShell.
-- Modul: System Information, Battery, SSD/HDD, CPU, RAM, GPU, Temperature & Fan, Activation/Device Management, Serial opt-in.
-- GitHub Actions: `CI / windows` (Windows Server 2025 VM), `CI / macos-intel`, `CI / macos-arm64`, plus build installer/portable manual tanpa release.
+### Fase 3 — Interactive Hardware Testing
+Tes yang dipandu dan melibatkan pengguna, dengan hasil berlabel **terukur** atau **dikonfirmasi pengguna**:
+- layar/piksel mati;
+- keyboard;
+- trackpad;
+- Touch Bar (bila ada);
+- speaker;
+- mikrofon;
+- webcam;
+- Wi-Fi/Bluetooth (deteksi adaptor dan status radio, tanpa koneksi);
+- USB/Thunderbolt dan port lain yang bisa diverifikasi.
 
-**Kriteria selesai:** CI hijau (L0–L2) **dan** tervalidasi di laptop Windows 11 dan Windows 10 asli dengan akun standar dan offline (L3–L5). Detail: [`docs/FASE3-WINDOWS-PRD.md`](docs/FASE3-WINDOWS-PRD.md).
+**Kriteria selesai:** setiap tes bisa dijalankan, dilewati, dan diulang. Hasilnya (Lulus / Gagal / Dilewati / Tidak berlaku / Tidak dapat dipastikan) tercatat beserta buktinya. Semua tes lolos L3 di Mac Intel asli. Tidak ada rekaman yang disimpan, tidak ada pengaturan sistem yang diubah, dan tidak ada akses jaringan. Detail: [`docs/FASE3-INTERACTIVE-TESTING-PRD.md`](docs/FASE3-INTERACTIVE-TESTING-PRD.md).
 
-### Fase 4 — Tes interaktif
-Keyboard, layar (piksel mati), speaker, mikrofon, kamera, touchpad, port USB.
-**Kriteria selesai:** setiap tes bisa dijalankan dan hasilnya (lulus/gagal/dilewati) tercatat.
+### Fase 4 — Reports & UI/UX
+- Ekspor **PDF** dan **JSON**, dengan nomor seri hanya bila dipilih saat ekspor.
+- Riwayat pemeriksaan lokal.
+- Ringkasan kesehatan gabungan (otomatis + interaktif).
+- Sumber data dan keterbatasan tampil di layar dan di laporan.
+- Mode gelap/terang dengan opsi manual.
 
-### Fase 5 — Skor kesehatan & laporan
-Skor 0–100, riwayat pemeriksaan, ekspor **PDF dan JSON**. Nomor seri hanya disertakan bila dipilih pengguna.
-**Kriteria selesai:** laporan bisa diekspor dan dibuka di perangkat lain tanpa internet.
+**Kriteria selesai:** laporan bisa diekspor dan dibuka di perangkat lain tanpa internet. Isi laporan sama dengan yang tampil di layar.
 
-### Fase 6 — Mode portable & packaging
-- Deteksi mode portable (file penanda), folder data di samping aplikasi, dan fallback bila USB *read-only*.
-- Windows portable: deteksi WebView2 Runtime sebelum jendela dibuat, lalu pesan native berisi instruksi bila belum ada.
-- Build universal macOS (Intel + Apple Silicon), installer NSIS dengan WebView2 offline, serta `.exe` portable.
-- Keputusan *code signing*/notarisasi.
+### Fase 5 — Distribution
+- Build Intel dan build Apple Silicon (atau *universal binary*).
+- Installer DMG.
+- Mode portable di flashdisk: file penanda, folder data di samping aplikasi, dan fallback bila tidak bisa ditulisi. Kajian Gatekeeper dan *App Translocation* juga masuk di sini.
+- Keputusan *code signing* dan notarisasi.
+- GitHub Releases, dibuat oleh pemilik.
+- Pengujian di beberapa Mac lain (Intel tanpa T2, Intel dengan GPU diskret, Apple Silicon M-series).
 
-**Kriteria selesai:** installer dan versi portable lulus uji offline di ketiga platform target.
-
-### Fase 7 — QA & rilis 1.0
-Uji lintas perangkat, perbaikan bug, aksesibilitas, dokumentasi pengguna, rilis di GitHub Releases.
+**Kriteria selesai:** DMG dan versi portable lulus uji offline di Mac Intel dan Apple Silicon asli.

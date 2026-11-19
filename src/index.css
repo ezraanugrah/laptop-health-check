@@ -1,10 +1,18 @@
 @import "tailwindcss";
 
+/* Tema manual: kelas `dark` di <html> (diatur PreferencesProvider), bukan
+   prefers-color-scheme. Default Gelap ditetapkan di index.html agar tidak berkedip. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Hanya font sistem: aplikasi harus berjalan 100% offline (tanpa CDN font). */
 :root {
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  color-scheme: light dark;
+  color-scheme: light;
   -webkit-font-smoothing: antialiased;
+}
+
+html.dark {
+  color-scheme: dark;
 }
 
 body {

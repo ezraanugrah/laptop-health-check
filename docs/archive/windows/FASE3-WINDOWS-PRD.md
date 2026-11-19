@@ -1,8 +1,18 @@
 # PRD Teknis & Rencana Implementasi — Fase 3: Windows Diagnostics
 
+> **DIARSIPKAN — scope Windows dibatalkan pada 19 November 2026.**
+> Laptop Health Check kini dikembangkan **khusus macOS** (lihat [`PRD.md`](../../../PRD.md) dan [`ROADMAP.md`](../../../ROADMAP.md)).
+> Dokumen ini disimpan hanya sebagai riwayat dan bahan referensi. Isinya **bukan rencana aktif**, dan
+> tidak boleh dipakai untuk menambah fitur Windows.
+>
+> Riwayat singkat:
+> - Milestone 3.0 (model data lintas OS + kerangka Windows + CI) masuk ke `main` lewat PR #2 (`851586b`, 19 Nov 2026). Job CI `windows` gagal di PR tersebut karena clippy `dead_code`; job macOS lolos.
+> - Branch `feature/macos-only` mengeluarkan kode Windows (`platform/windows/`, field/enum khusus Windows, target NSIS, job CI `windows`). Perbaikan Milestone 3.0 yang berguna untuk macOS dipertahankan: kategori pemeriksaan, `HardwareSummary` ("Pemeriksaan belum lengkap"), `PlatformSupport` + banner pratinjau, field `Metric.experimental`, `Platform::notes`, dan CI macOS.
+> - Modul Windows 3.1–3.9 tidak pernah diimplementasikan. Kode Milestone 3.0 tetap bisa dilihat di riwayat Git (`538ddd3`).
+
 | | |
 |---|---|
-| Status | **Disetujui** (D1–D8 dengan penyesuaian, §11) · Milestone 3.0 selesai di branch `feature/windows-diagnostics` (belum di-commit); modul Windows 3.1–3.9 belum diimplementasikan |
+| Status | **Diarsipkan** (sebelumnya: disetujui D1–D8, §11; Milestone 3.0 di-merge lewat PR #2; modul 3.1–3.9 tidak dikerjakan) |
 | Tanggal | 19 November 2026 |
 | Basis kode | `main` @ `21a5f43` (Fase 2 macOS) |
 | Branch rencana | `feature/windows-diagnostics` (dibuat dari `main` setelah disetujui) |

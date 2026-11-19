@@ -1,11 +1,13 @@
-//! Logika diagnostik lintas platform.
+//! Logika diagnostik: menilai data mentah dari lapisan `platform` (tanpa API OS).
 //!
 //! Alur: lapisan [`crate::platform`] membaca data mentah ([`raw`]) secara
 //! paralel, lalu setiap modul pemeriksaan menilainya menjadi
 //! [`types::CheckResult`]. Modul di sini TIDAK memanggil API OS.
 
+pub mod device_profile;
 pub mod format;
 pub mod raw;
+pub mod text;
 pub mod types;
 
 mod battery;
@@ -101,7 +103,7 @@ fn join<T>(handle: ScopedJoinHandle<'_, Result<T, ProbeError>>) -> Result<T, Pro
         .unwrap_or_else(|_| Err(ProbeError::new("pembacaan data berhenti tak terduga")))
 }
 
-/// Kesimpulan kesehatan hardware (keputusan D1/D3):
+/// Kesimpulan kesehatan hardware (lihat ARCHITECTURE.md §4):
 /// - Hanya pemeriksaan hardware yang dihitung; identitas, keamanan OS, dan
 ///   kepemilikan (`DeviceSecurity`) tidak memengaruhi kesimpulan ini.
 /// - Temuan Kritis/Peringatan selalu ditampilkan walau data lain belum lengkap.

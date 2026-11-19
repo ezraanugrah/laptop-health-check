@@ -8,22 +8,23 @@ import type {
   ReasonLevel,
   Status,
 } from "../types/diagnostics";
+import type { T, UiKey } from "../i18n/translate.ts";
 
 export type Tone = "success" | "warning" | "danger" | "neutral" | "muted";
 
-export const STATUS_META: Record<Status, { label: string; tone: Tone }> = {
-  healthy: { label: "Sehat", tone: "success" },
-  warning: { label: "Peringatan", tone: "warning" },
-  critical: { label: "Kritis", tone: "danger" },
-  unknown: { label: "Tidak diketahui", tone: "neutral" },
-  notApplicable: { label: "Tidak berlaku", tone: "muted" },
+export const STATUS_META: Record<Status, { label: UiKey; tone: Tone }> = {
+  healthy: { label: "status.healthy", tone: "success" },
+  warning: { label: "status.warning", tone: "warning" },
+  critical: { label: "status.critical", tone: "danger" },
+  unknown: { label: "status.unknown", tone: "neutral" },
+  notApplicable: { label: "status.notApplicable", tone: "muted" },
 };
 
-export const HARDWARE_STATUS_META: Record<HardwareStatus, { label: string; tone: Tone }> = {
-  healthy: { label: "Sehat", tone: "success" },
-  warning: { label: "Peringatan", tone: "warning" },
-  critical: { label: "Kritis", tone: "danger" },
-  incomplete: { label: "Pemeriksaan belum lengkap", tone: "neutral" },
+export const HARDWARE_STATUS_META: Record<HardwareStatus, { label: UiKey; tone: Tone }> = {
+  healthy: { label: "status.healthy", tone: "success" },
+  warning: { label: "status.warning", tone: "warning" },
+  critical: { label: "status.critical", tone: "danger" },
+  incomplete: { label: "status.incomplete", tone: "neutral" },
 };
 
 export const REASON_TONE: Record<ReasonLevel, Tone> = {
@@ -52,40 +53,28 @@ export const CATEGORY_ORDER: CheckCategory[] = [
   "deviceSecurity",
 ];
 
-export const CATEGORY_META: Record<CheckCategory, { title: string; description: string }> = {
+export const CATEGORY_META: Record<CheckCategory, { title: UiKey; description: UiKey }> = {
   coreHardware: {
-    title: "Hardware inti",
-    description: "Bila salah satu tidak terbaca, hasil hardware dinyatakan belum lengkap.",
+    title: "category.coreHardware.title",
+    description: "category.coreHardware.description",
   },
   supplementaryHardware: {
-    title: "Hardware pelengkap",
-    description: "Boleh tidak terukur tanpa mengubah kesimpulan inti; tetap dicatat di cakupan.",
+    title: "category.supplementaryHardware.title",
+    description: "category.supplementaryHardware.description",
   },
   deviceSecurity: {
-    title: "Perangkat, keamanan OS & kepemilikan",
-    description: "Dinilai terpisah dan tidak memengaruhi kesimpulan kesehatan hardware.",
+    title: "category.deviceSecurity.title",
+    description: "category.deviceSecurity.description",
   },
 };
 
-const BASE_TITLES: Record<CheckId, string> = {
-  system: "Sistem",
-  battery: "Baterai",
-  storage: "SSD/HDD",
-  memory: "RAM & Memori",
-  cpu: "CPU & Status Termal",
-  temperature: "Temperatur",
-  fans: "Kipas",
-  gpu: "GPU",
-  ownership: "Kepemilikan & Manajemen",
-};
+/** Kunci judul kartu pemeriksaan (aplikasi khusus macOS). */
+export function checkTitleKey(id: CheckId): UiKey {
+  return `check.${id}`;
+}
 
-/** Judul kartu sesuai OS (D2). `os` = `AppInfo.os` ("macos", "windows", ...). */
-export function checkTitle(id: CheckId, os?: string): string {
-  if (id === "ownership") {
-    if (os === "macos") return "Activation Lock & MDM";
-    if (os === "windows") return "Aktivasi & Manajemen Perangkat";
-  }
-  return BASE_TITLES[id];
+export function checkTitle(id: CheckId, t: T): string {
+  return t(checkTitleKey(id));
 }
 
 /** Kategori pemeriksaan bila laporan belum tersedia (sama dengan backend). */
@@ -106,19 +95,19 @@ export function categoryOf(id: CheckId): CheckCategory {
 }
 
 /** Teks cakupan, mis. "7 dari 7 pemeriksaan hardware terukur". */
-export function coverageText(summary: HardwareSummary): string {
-  return `${summary.measured} dari ${summary.total} pemeriksaan hardware terukur`;
+export function coverageText(summary: HardwareSummary, t: T): string {
+  return t("dashboard.coverage", { measured: summary.measured, total: summary.total });
 }
 
 /** Daftar pemeriksaan yang belum terukur, dipisah inti/pelengkap. */
-export function missingText(summary: HardwareSummary, os?: string): string[] {
-  const list = (ids: CheckId[]) => ids.map((id) => checkTitle(id, os)).join(", ");
+export function missingText(summary: HardwareSummary, t: T): string[] {
+  const list = (ids: CheckId[]) => ids.map((id) => checkTitle(id, t)).join(", ");
   const lines: string[] = [];
   if (summary.missingCore.length > 0) {
-    lines.push(`Data inti belum tersedia: ${list(summary.missingCore)}.`);
+    lines.push(t("dashboard.missingCore", { list: list(summary.missingCore) }));
   }
   if (summary.missingSupplementary.length > 0) {
-    lines.push(`Pelengkap tidak terukur: ${list(summary.missingSupplementary)}.`);
+    lines.push(t("dashboard.missingSupplementary", { list: list(summary.missingSupplementary) }));
   }
   return lines;
 }
@@ -133,14 +122,4 @@ export function countByStatus(checks: CheckResult[]): Record<Status, number> {
   };
   for (const check of checks) counts[check.status] += 1;
   return counts;
-}
-
-export function formatDuration(ms: number): string {
-  return ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(1)} dtk`;
-}
-
-export function formatTimestamp(ms: number, locale = "id-ID"): string {
-  return new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(
-    new Date(ms),
-  );
 }

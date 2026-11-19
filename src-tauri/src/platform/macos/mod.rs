@@ -5,12 +5,13 @@
 //! dependency tambahan. Pengujian langsung baru dilakukan di Mac Intel;
 //! jalur Apple Silicon ditandai "belum diverifikasi" di dokumentasi.
 
-use super::{Platform, ProbeError};
+use super::{Note, Platform, ProbeError};
 use crate::diagnostics::raw::{
     BatteryInfo, CpuInfo, DiskInfo, GpuInfo, MemoryInfo, OwnershipInfo, SensorReadings,
     SystemOverview,
 };
 use crate::diagnostics::types::{CheckId, PlatformSupport, SupportLevel};
+use crate::tr;
 
 /// Memuat fixture tersanitasi (output asli Mac Intel) untuk test parser.
 #[cfg(test)]
@@ -99,47 +100,73 @@ impl Platform for MacOs {
         }
     }
 
-    fn notes(check: CheckId) -> &'static [&'static str] {
+    fn notes(check: CheckId) -> &'static [Note] {
         match check {
             CheckId::System | CheckId::Battery => &[],
-            CheckId::Storage => &[
+            CheckId::Storage => &[(
+                "note.storage.smartOnly",
                 "Status SMART dari macOS hanya berupa ringkasan lulus/gagal. Persentase keausan SSD, total data tertulis (TBW), dan jam pemakaian tidak tersedia tanpa hak administrator.",
-            ],
-            CheckId::Memory => &[
+            )],
+            CheckId::Memory => &[(
+                "note.memory.physicalDamage",
                 "Kerusakan fisik sel RAM tidak dapat dideteksi dari dalam macOS. Gunakan Apple Diagnostics untuk menguji perangkat keras.",
-            ],
-            CheckId::Cpu => &[
+            )],
+            CheckId::Cpu => &[(
+                "note.cpu.thermalSource",
                 "Status termal dibaca dari catatan macOS (pmset). Uji beban CPU tidak dijalankan.",
-            ],
+            )],
             CheckId::Temperature => &[
-                "Dibaca dari SMC secara read-only. Nama sensor SMC tidak didokumentasikan Apple; hanya sensor yang dikenali dan bernilai wajar yang ditampilkan.",
-                "Pemetaan sensor Apple Silicon belum diverifikasi di perangkat asli.",
+                (
+                    "note.temperature.smcSensors",
+                    "Dibaca dari SMC secara read-only. Nama sensor SMC tidak didokumentasikan Apple; hanya sensor yang dikenali dan bernilai wajar yang ditampilkan.",
+                ),
+                (
+                    "note.temperature.appleSilicon",
+                    "Pemetaan sensor Apple Silicon belum diverifikasi di perangkat asli.",
+                ),
             ],
-            CheckId::Fans => &[
+            CheckId::Fans => &[(
+                "note.fans.readOnly",
                 "Dibaca dari SMC secara read-only; aplikasi tidak pernah mengubah kecepatan kipas.",
-            ],
-            CheckId::Gpu => &[
+            )],
+            CheckId::Gpu => &[(
+                "note.gpu.noHealthMetric",
                 "Tidak ada metrik resmi untuk \"kesehatan\" GPU. Pemeriksaan ini memastikan GPU terdeteksi dan akselerasi grafis aktif; uji artefak visual direncanakan di Fase 4.",
-            ],
+            )],
             CheckId::Ownership => &[
-                "Status dibaca dari macOS di perangkat ini dan bisa berbeda dengan status di server Apple. Kepastian hanya didapat bila pemilik sebelumnya mematikan Find My dan menghapus perangkat dari Apple ID-nya.",
-                "Mac yang terdaftar di Apple Business/School Manager dapat terdaftar ulang ke MDM setelah macOS dihapus dan diinstal ulang, walaupun saat ini tidak terdeteksi.",
-                "Hasil ini bukan jaminan bebas penguncian dan bukan bukti kepemilikan.",
+                (
+                    "note.ownership.localStatus",
+                    "Status dibaca dari macOS di perangkat ini dan bisa berbeda dengan status di server Apple. Kepastian hanya didapat bila pemilik sebelumnya mematikan Find My dan menghapus perangkat dari Apple ID-nya.",
+                ),
+                (
+                    "note.ownership.reEnroll",
+                    "Mac yang terdaftar di Apple Business/School Manager dapat terdaftar ulang ke MDM setelah macOS dihapus dan diinstal ulang, walaupun saat ini tidak terdeteksi.",
+                ),
+                (
+                    "note.ownership.noGuarantee",
+                    "Hasil ini bukan jaminan bebas penguncian dan bukan bukti kepemilikan.",
+                ),
             ],
         }
     }
 
     fn support() -> PlatformSupport {
         if cfg!(target_arch = "x86_64") {
-            PlatformSupport {
-                level: SupportLevel::Verified,
-                note: "Diuji di MacBook Intel asli (MacBookPro16,2).".into(),
-            }
+            PlatformSupport::new(
+                SupportLevel::Verified,
+                tr!(
+                    "support.verifiedIntel",
+                    "Diuji di MacBook Intel asli (MacBookPro16,2)."
+                ),
+            )
         } else {
-            PlatformSupport {
-                level: SupportLevel::Preview,
-                note: "Apple Silicon belum diverifikasi di perangkat asli; perlakukan hasil sebagai pratinjau.".into(),
-            }
+            PlatformSupport::new(
+                SupportLevel::Preview,
+                tr!(
+                    "support.previewAppleSilicon",
+                    "Apple Silicon belum diverifikasi di perangkat asli; perlakukan hasil sebagai pratinjau."
+                ),
+            )
         }
     }
 }
@@ -152,7 +179,7 @@ mod tests {
     fn ownership_notes_always_state_limitations() {
         let notes = MacOs::notes(CheckId::Ownership);
         assert_eq!(notes.len(), 3);
-        assert!(notes.iter().any(|n| n.contains("bukan jaminan")));
+        assert!(notes.iter().any(|(_, text)| text.contains("bukan jaminan")));
     }
 
     #[test]

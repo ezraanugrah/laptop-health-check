@@ -3,10 +3,9 @@
 use super::findings::Findings;
 use super::format::{format_celsius, format_percent};
 use super::raw::BatteryInfo;
-#[cfg(test)]
-use super::raw::CapacityUnit;
 use super::types::{CheckId, CheckResult, Metric, Reason, Status};
 use crate::platform::ProbeError;
+use crate::tr;
 
 /// Kapasitas ≥ nilai ini (% dari desain) = sehat.
 pub const CAPACITY_HEALTHY_MIN: f64 = 80.0;
@@ -23,19 +22,21 @@ pub fn evaluate(data: &Result<Option<BatteryInfo>, ProbeError>) -> CheckResult {
         Ok(None) => CheckResult::new(
             CheckId::Battery,
             Status::NotApplicable,
-            "Perangkat ini tidak memiliki baterai.",
+            tr!(
+                "battery.summary.noBattery",
+                "Perangkat ini tidak memiliki baterai."
+            ),
         )
-        .with_reasons(vec![Reason::info("OS tidak melaporkan baterai terpasang.")]),
+        .with_reasons(vec![Reason::info(tr!(
+            "battery.reason.notReported",
+            "OS tidak melaporkan baterai terpasang."
+        ))]),
         Ok(Some(info)) => assess(info),
     }
 }
 
 /// Kapasitas penuh saat ini sebagai % dari kapasitas desain.
-/// `None` bila firmware hanya melaporkan kapasitas relatif (tidak bisa dibandingkan).
 pub fn capacity_percent(info: &BatteryInfo) -> Option<f64> {
-    if info.capacity_is_relative == Some(true) {
-        return None;
-    }
     match (info.full_charge_capacity, info.design_capacity) {
         // Dikali 100 dulu agar batas (mis. 600/1000 = 60%) tepat tanpa galat pembulatan.
         (Some(full), Some(design)) if design > 0 => {
@@ -74,31 +75,55 @@ pub fn assess(info: &BatteryInfo) -> CheckResult {
     let capacity = capacity_percent(info);
 
     match capacity {
-        Some(c) if c < CAPACITY_CRITICAL_BELOW => f.critical(format!(
-            "Kapasitas tinggal {} dari desain (di bawah {CAPACITY_CRITICAL_BELOW}%).",
-            format_percent(c)
+        Some(c) if c < CAPACITY_CRITICAL_BELOW => {
+            let pct = format_percent(c);
+            f.critical(tr!(
+                "battery.reason.capacityCritical",
+                format!(
+                    "Kapasitas tinggal {pct} dari desain (di bawah {CAPACITY_CRITICAL_BELOW}%)."
+                ),
+                pct = pct,
+                limit = CAPACITY_CRITICAL_BELOW
+            ))
+        }
+        Some(c) if c < CAPACITY_HEALTHY_MIN => {
+            let pct = format_percent(c);
+            f.warning(tr!(
+                "battery.reason.capacityWarning",
+                format!("Kapasitas tinggal {pct} dari desain (di bawah {CAPACITY_HEALTHY_MIN}%)."),
+                pct = pct,
+                limit = CAPACITY_HEALTHY_MIN
+            ))
+        }
+        Some(c) => {
+            let pct = format_percent(c);
+            f.ok(tr!(
+                "battery.reason.capacityOk",
+                format!("Kapasitas {pct} dari desain (minimal {CAPACITY_HEALTHY_MIN}%)."),
+                pct = pct,
+                limit = CAPACITY_HEALTHY_MIN
+            ))
+        }
+        None => f.info(tr!(
+            "battery.reason.capacityUnknown",
+            "Kapasitas desain/aktual tidak dilaporkan."
         )),
-        Some(c) if c < CAPACITY_HEALTHY_MIN => f.warning(format!(
-            "Kapasitas tinggal {} dari desain (di bawah {CAPACITY_HEALTHY_MIN}%).",
-            format_percent(c)
-        )),
-        Some(c) => f.ok(format!(
-            "Kapasitas {} dari desain (minimal {CAPACITY_HEALTHY_MIN}%).",
-            format_percent(c)
-        )),
-        None if info.capacity_is_relative == Some(true) => f.info(
-            "Firmware baterai hanya melaporkan kapasitas relatif, sehingga kesehatan kapasitas tidak dapat dihitung.",
-        ),
-        None => f.info("Kapasitas desain/aktual tidak dilaporkan."),
     }
 
     if info.permanent_failure == Some(true) {
-        f.critical("Baterai melaporkan kegagalan permanen (PermanentFailureStatus).");
+        f.critical(tr!(
+            "battery.reason.permanentFailure",
+            "Baterai melaporkan kegagalan permanen (PermanentFailureStatus)."
+        ));
     }
 
     let mut os_says_good = false;
     if let Some(cond) = &info.os_condition {
-        let text = format!("macOS melaporkan kondisi baterai \"{cond}\".");
+        let text = tr!(
+            "battery.reason.osCondition",
+            format!("macOS melaporkan kondisi baterai \"{cond}\"."),
+            condition = cond
+        );
         match classify_condition(cond) {
             OsCondition::Service => f.critical(text),
             OsCondition::Fair => f.warning(text),
@@ -112,34 +137,56 @@ pub fn assess(info: &BatteryInfo) -> CheckResult {
 
     if let (Some(cycles), Some(design)) = (info.cycle_count, info.design_cycle_count) {
         if cycles >= design {
-            f.warning(format!(
-                "Siklus pengisian {cycles} sudah mencapai batas desain {design}."
+            f.warning(tr!(
+                "battery.reason.cyclesAtLimit",
+                format!("Siklus pengisian {cycles} sudah mencapai batas desain {design}."),
+                cycles = cycles,
+                design = design
             ));
         } else if f64::from(cycles) >= f64::from(design) * CYCLE_WARNING_RATIO {
-            f.warning(format!(
-                "Siklus pengisian {cycles} sudah ≥{}% dari batas desain {design}.",
-                (CYCLE_WARNING_RATIO * 100.0) as u32
+            let ratio = (CYCLE_WARNING_RATIO * 100.0) as u32;
+            f.warning(tr!(
+                "battery.reason.cyclesNearLimit",
+                format!("Siklus pengisian {cycles} sudah ≥{ratio}% dari batas desain {design}."),
+                cycles = cycles,
+                design = design,
+                ratio = ratio
             ));
         } else {
-            f.ok(format!(
-                "Siklus pengisian {cycles} dari batas desain {design}."
+            f.ok(tr!(
+                "battery.reason.cyclesOk",
+                format!("Siklus pengisian {cycles} dari batas desain {design}."),
+                cycles = cycles,
+                design = design
             ));
         }
     }
 
     if let Some(t) = info.temperature_c.filter(|t| *t >= TEMPERATURE_WARNING_C) {
-        f.warning(format!(
-            "Suhu baterai {} (≥{TEMPERATURE_WARNING_C} °C).",
-            format_celsius(t)
+        let temp = format_celsius(t);
+        f.warning(tr!(
+            "battery.reason.hot",
+            format!("Suhu baterai {temp} (≥{TEMPERATURE_WARNING_C} °C)."),
+            temp = temp,
+            limit = TEMPERATURE_WARNING_C
         ));
     }
 
     let status = f.status(capacity.is_some() || os_says_good);
     let summary = match status {
-        Status::Healthy => "Baterai dalam kondisi baik.",
-        Status::Warning => "Kondisi baterai menurun — perlu perhatian.",
-        Status::Critical => "Baterai perlu diservis atau diganti.",
-        _ => "Kondisi baterai tidak dapat dipastikan.",
+        Status::Healthy => tr!("battery.summary.healthy", "Baterai dalam kondisi baik."),
+        Status::Warning => tr!(
+            "battery.summary.warning",
+            "Kondisi baterai menurun — perlu perhatian."
+        ),
+        Status::Critical => tr!(
+            "battery.summary.critical",
+            "Baterai perlu diservis atau diganti."
+        ),
+        _ => tr!(
+            "battery.summary.unknown",
+            "Kondisi baterai tidak dapat dipastikan."
+        ),
     };
 
     CheckResult::new(CheckId::Battery, status, summary)
@@ -149,50 +196,73 @@ pub fn assess(info: &BatteryInfo) -> CheckResult {
 
 fn metrics(info: &BatteryInfo, capacity: Option<f64>) -> Vec<Metric> {
     let mut m = Vec::new();
-    if let Some(n) = info.battery_count.filter(|&n| n > 1) {
-        m.push(Metric::new("Jumlah baterai", n.to_string()));
-    }
     if let Some(c) = capacity {
-        let unit = info
-            .capacity_unit
-            .map(|u| format!(" {}", u.symbol()))
-            .unwrap_or_default();
         let detail = match (info.full_charge_capacity, info.design_capacity) {
             (Some(full), Some(design)) => {
-                format!("{} ({full} / {design}{unit})", format_percent(c))
+                format!("{} ({full} / {design} mAh)", format_percent(c)).into()
             }
-            _ => format!("{} (menurut OS)", format_percent(c)),
+            _ => {
+                let pct = format_percent(c);
+                tr!(
+                    "battery.value.capacityOs",
+                    format!("{pct} (menurut OS)"),
+                    pct = pct
+                )
+            }
         };
-        m.push(Metric::new("Kapasitas kesehatan", detail));
-    }
-    if let Some(chem) = &info.chemistry {
-        m.push(Metric::new("Kimia baterai", chem.clone()));
+        m.push(Metric::new(
+            tr!("battery.metric.capacity", "Kapasitas kesehatan"),
+            detail,
+        ));
     }
     match (info.cycle_count, info.design_cycle_count) {
         (Some(c), Some(d)) => m.push(Metric::new(
-            "Siklus pengisian",
-            format!("{c} dari {d} (batas desain)"),
+            tr!("battery.metric.cycles", "Siklus pengisian"),
+            tr!(
+                "battery.value.cycles",
+                format!("{c} dari {d} (batas desain)"),
+                cycles = c,
+                design = d
+            ),
         )),
-        (Some(c), None) => m.push(Metric::new("Siklus pengisian", c.to_string())),
+        (Some(c), None) => m.push(Metric::new(
+            tr!("battery.metric.cycles", "Siklus pengisian"),
+            c.to_string(),
+        )),
         _ => {}
     }
     if let Some(cond) = &info.os_condition {
-        m.push(Metric::new("Kondisi menurut macOS", cond.clone()));
+        m.push(Metric::new(
+            tr!("battery.metric.osCondition", "Kondisi menurut macOS"),
+            cond.clone(),
+        ));
     }
     if let Some(t) = info.temperature_c {
-        m.push(Metric::new("Suhu baterai", format_celsius(t)));
+        m.push(Metric::new(
+            tr!("battery.metric.temperature", "Suhu baterai"),
+            format_celsius(t),
+        ));
     }
     if let Some(p) = info.charge_percent {
-        m.push(Metric::new("Muatan", format!("{p}%")));
+        m.push(Metric::new(
+            tr!("battery.metric.charge", "Muatan"),
+            format!("{p}%"),
+        ));
     }
     let power = match (info.external_power, info.is_charging) {
-        (Some(true), Some(true)) => Some("Adaptor terhubung · mengisi"),
-        (Some(true), _) => Some("Adaptor terhubung · tidak mengisi"),
-        (Some(false), _) => Some("Memakai baterai"),
+        (Some(true), Some(true)) => Some(tr!(
+            "battery.value.powerCharging",
+            "Adaptor terhubung · mengisi"
+        )),
+        (Some(true), _) => Some(tr!(
+            "battery.value.powerNotCharging",
+            "Adaptor terhubung · tidak mengisi"
+        )),
+        (Some(false), _) => Some(tr!("battery.value.onBattery", "Memakai baterai")),
         _ => None,
     };
     if let Some(p) = power {
-        m.push(Metric::new("Daya", p));
+        m.push(Metric::new(tr!("battery.metric.power", "Daya"), p));
     }
     m
 }
@@ -223,7 +293,6 @@ mod tests {
         let info = BatteryInfo {
             design_capacity: Some(5088),
             full_charge_capacity: Some(3938),
-            capacity_unit: Some(CapacityUnit::MilliampHours),
             cycle_count: Some(925),
             design_cycle_count: Some(1000),
             temperature_c: Some(31.25),
@@ -232,7 +301,7 @@ mod tests {
         };
         let r = assess(&info);
         assert_eq!(r.status, Status::Warning);
-        let texts: Vec<_> = r.reasons.iter().map(|x| x.text.as_str()).collect();
+        let texts: Vec<_> = r.reasons.iter().map(|x| x.text.text.as_str()).collect();
         assert!(texts.iter().any(|t| t.contains("77%")));
         assert!(texts.iter().any(|t| t.contains("925")));
         assert!(texts.iter().any(|t| t.contains("\"Good\"")));
@@ -307,48 +376,6 @@ mod tests {
     #[test]
     fn no_battery_is_not_applicable() {
         assert_eq!(evaluate(&Ok(None)).status, Status::NotApplicable);
-    }
-
-    /// Contoh data bergaya Windows (BUKAN data perangkat asli).
-    #[test]
-    fn windows_style_mwh_and_multiple_batteries() {
-        let info = BatteryInfo {
-            design_capacity: Some(57_000),
-            full_charge_capacity: Some(51_300),
-            capacity_unit: Some(CapacityUnit::MilliwattHours),
-            battery_count: Some(2),
-            chemistry: Some("LiP".into()),
-            ..Default::default()
-        };
-        let r = assess(&info);
-        assert_eq!(r.status, Status::Healthy);
-        let value = |label: &str| {
-            r.metrics
-                .iter()
-                .find(|m| m.label == label)
-                .map(|m| m.value.clone())
-        };
-        assert_eq!(
-            value("Kapasitas kesehatan").as_deref(),
-            Some("90% (51300 / 57000 mWh)")
-        );
-        assert_eq!(value("Jumlah baterai").as_deref(), Some("2"));
-        assert_eq!(value("Kimia baterai").as_deref(), Some("LiP"));
-    }
-
-    #[test]
-    fn relative_capacity_is_unknown_not_healthy() {
-        let info = BatteryInfo {
-            capacity_is_relative: Some(true),
-            ..battery(100, 100)
-        };
-        let r = assess(&info);
-        assert_eq!(r.status, Status::Unknown);
-        assert!(
-            r.reasons
-                .iter()
-                .any(|x| x.text.contains("kapasitas relatif"))
-        );
     }
 
     #[test]

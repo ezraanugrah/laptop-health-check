@@ -8,24 +8,20 @@ import {
   categoryOf,
   checkTitle,
   coverageText,
-  formatDuration,
-  formatTimestamp,
   missingText,
 } from "../lib/status";
+import { useI18n } from "../lib/preferences";
 import { CheckCard } from "../components/CheckCard";
 import { SerialNumberRow } from "../components/SerialNumberRow";
 import { HardwareStatusBadge, StatusBadge } from "../components/StatusBadge";
 
-const NOT_DESKTOP =
-  "Halaman ini dibuka di browser biasa. Jalankan lewat aplikasi desktop (npm run tauri dev) untuk membaca data perangkat.";
-
 export function DashboardPage({ appInfo }: { appInfo: AppInfo | null }) {
+  const { t, tx, dateTime, duration } = useI18n();
   const [report, setReport] = useState<DiagnosticsReport | null>(null);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const desktop = inDesktopApp();
   const started = useRef(false);
-  const os = appInfo?.os;
 
   const runChecks = useCallback(async () => {
     setRunning(true);
@@ -42,7 +38,7 @@ export function DashboardPage({ appInfo }: { appInfo: AppInfo | null }) {
   // Pemeriksaan otomatis saat aplikasi dibuka (sekali, aman untuk StrictMode).
   useEffect(() => {
     if (!desktop) {
-      setError(NOT_DESKTOP);
+      setError("notDesktop");
       return;
     }
     if (started.current) return;
@@ -56,10 +52,8 @@ export function DashboardPage({ appInfo }: { appInfo: AppInfo | null }) {
     <div className="mx-auto max-w-6xl space-y-5 p-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Ringkasan</h1>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-            Data dibaca langsung dari perangkat ini, tanpa koneksi internet.
-          </p>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("dashboard.title")}</h1>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{t("dashboard.subtitle")}</p>
         </div>
         <button
           type="button"
@@ -67,7 +61,7 @@ export function DashboardPage({ appInfo }: { appInfo: AppInfo | null }) {
           disabled={!desktop || running}
           className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white"
         >
-          {running ? "Memeriksa…" : "Periksa ulang"}
+          {running ? t("dashboard.running") : t("dashboard.rerun")}
         </button>
       </header>
 
@@ -76,8 +70,8 @@ export function DashboardPage({ appInfo }: { appInfo: AppInfo | null }) {
           role="note"
           className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:border-sky-900/60 dark:bg-sky-950/40 dark:text-sky-200"
         >
-          <span className="font-semibold">Pratinjau — belum diverifikasi di hardware asli.</span>{" "}
-          {appInfo.support.note}
+          <span className="font-semibold">{t("dashboard.previewTitle")}</span>{" "}
+          {tx({ text: appInfo.support.note, code: appInfo.support.noteCode })}
         </div>
       )}
 
@@ -86,38 +80,38 @@ export function DashboardPage({ appInfo }: { appInfo: AppInfo | null }) {
           role="alert"
           className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200"
         >
-          {error}
+          {error === "notDesktop" ? t("dashboard.notDesktop") : error}
         </div>
       )}
 
       {report && (
         <section
-          aria-label="Ringkasan hasil"
+          aria-label={t("dashboard.resultSummary")}
           className="space-y-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm dark:border-slate-800 dark:bg-slate-900"
         >
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
             <div className="flex items-center gap-2">
-              <span className="font-semibold">Kesehatan hardware</span>
+              <span className="font-semibold">{t("dashboard.hardwareHealth")}</span>
               <HardwareStatusBadge status={report.hardware.status} />
             </div>
             <span className="text-slate-600 dark:text-slate-400">
-              {coverageText(report.hardware)}
+              {coverageText(report.hardware, t)}
             </span>
             <span className="ml-auto text-xs text-slate-500 dark:text-slate-400">
-              Diperiksa {formatTimestamp(report.generatedAt)} · {formatDuration(report.durationMs)}
+              {t("dashboard.checkedAt", { time: dateTime(report.generatedAt), duration: duration(report.durationMs) })}
             </span>
           </div>
-          {missingText(report.hardware, os).map((line) => (
+          {missingText(report.hardware, t).map((line) => (
             <p key={line} className="text-xs text-slate-600 dark:text-slate-400">
               {line}
             </p>
           ))}
           {deviceChecks.length > 0 && (
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-slate-100 pt-2 text-xs text-slate-600 dark:border-slate-800 dark:text-slate-400">
-              <span>Dinilai terpisah:</span>
+              <span>{t("dashboard.assessedSeparately")}</span>
               {deviceChecks.map((c) => (
                 <span key={c.id} className="flex items-center gap-1.5">
-                  {checkTitle(c.id, os)} <StatusBadge status={c.status} />
+                  {checkTitle(c.id, t)} <StatusBadge status={c.status} />
                 </span>
               ))}
             </div>
@@ -126,13 +120,13 @@ export function DashboardPage({ appInfo }: { appInfo: AppInfo | null }) {
       )}
 
       {CATEGORY_ORDER.map((category) => (
-        <section key={category} aria-label={CATEGORY_META[category].title} className="space-y-2">
+        <section key={category} aria-label={t(CATEGORY_META[category].title)} className="space-y-2">
           <div>
             <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-              {CATEGORY_META[category].title}
+              {t(CATEGORY_META[category].title)}
             </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              {CATEGORY_META[category].description}
+            <p className="text-xs text-slate-600 dark:text-slate-400">
+              {t(CATEGORY_META[category].description)}
             </p>
           </div>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -140,7 +134,7 @@ export function DashboardPage({ appInfo }: { appInfo: AppInfo | null }) {
               <CheckCard
                 key={id}
                 id={id}
-                title={checkTitle(id, os)}
+                title={checkTitle(id, t)}
                 result={report?.checks.find((c) => c.id === id)}
                 loading={running && !report}
               >

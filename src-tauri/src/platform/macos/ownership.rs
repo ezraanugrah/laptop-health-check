@@ -7,7 +7,7 @@ use serde_json::Value;
 use super::bin::{PROFILES, SYSTEM_PROFILER};
 use super::command::{run, run_json};
 use super::parse::json_str;
-use crate::diagnostics::raw::{OwnershipFamily, OwnershipInfo};
+use crate::diagnostics::raw::OwnershipInfo;
 use crate::platform::ProbeError;
 
 pub fn probe() -> Result<OwnershipInfo, ProbeError> {
@@ -35,12 +35,9 @@ pub fn parse(hardware: Option<&Value>, profiles: Option<&str>) -> OwnershipInfo 
     // DEP (Apple Business/School Manager) = program pendaftaran organisasi.
     let (provisioning_enrolled, mdm_enrolled) = profiles.map(parse_enrollment).unwrap_or_default();
     OwnershipInfo {
-        family: OwnershipFamily::Apple,
         activation_lock_enabled,
         provisioning_enrolled,
         mdm_enrolled,
-        // Keanggotaan direktori & aktivasi OS: khusus Windows.
-        ..Default::default()
     }
 }
 

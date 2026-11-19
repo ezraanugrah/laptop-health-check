@@ -1,20 +1,17 @@
-//! Penilaian kesehatan SSD/HDD internal (lintas OS).
+//! Penilaian kesehatan SSD/HDD internal (macOS).
 //!
-//! Bukti yang dipakai: ringkasan SMART macOS, status kesehatan disk dari OS
-//! (Windows), dan prediksi kegagalan SMART (Windows). Data eksperimental
-//! (keausan, jam pakai, suhu) hanya ditampilkan berlabel dan TIDAK mengubah
-//! status sampai terverifikasi di hardware asli (D5).
+//! Bukti yang dipakai: ringkasan SMART dari macOS dan ruang kosong volume
+//! sistem. Disk eksternal (mis. flashdisk tempat aplikasi portable) tidak dinilai.
 
 use super::findings::Findings;
-use super::format::{format_celsius, format_disk_bytes, format_percent, yes_no_id};
-use super::raw::{DiskHealth, DiskInfo};
+use super::format::{format_disk_bytes, format_percent, yes_no_id};
+use super::raw::DiskInfo;
 use super::types::{CheckId, CheckResult, Metric, Status};
 use crate::platform::ProbeError;
+use crate::tr;
 
 /// Ruang kosong volume sistem di bawah nilai ini (%) = peringatan.
 pub const FREE_SPACE_WARNING_BELOW: f64 = 10.0;
-/// Batas informasi keausan SSD (eksperimental, tidak mengubah status).
-pub const WEAR_NOTICE_PERCENT: u8 = 90;
 
 pub fn evaluate(data: &Result<Vec<DiskInfo>, ProbeError>) -> CheckResult {
     match data {
@@ -37,15 +34,7 @@ fn smart(status: Option<&str>) -> Smart {
     }
 }
 
-fn health_label(h: DiskHealth) -> &'static str {
-    match h {
-        DiskHealth::Healthy => "Sehat (Healthy)",
-        DiskHealth::Warning => "Peringatan (Warning)",
-        DiskHealth::Unhealthy => "Tidak sehat (Unhealthy)",
-    }
-}
-
-/// Menilai satu disk; mengembalikan `true` bila ada bukti positif kesehatan.
+/// Menilai satu disk; `true` bila ada bukti positif kesehatan.
 fn assess_disk(d: &DiskInfo, f: &mut Findings) -> bool {
     let name = d.model.clone().unwrap_or_else(|| d.id.clone());
     let mut evidence = false;
@@ -53,84 +42,67 @@ fn assess_disk(d: &DiskInfo, f: &mut Findings) -> bool {
     match smart(d.smart_status.as_deref()) {
         Smart::Verified => {
             evidence = true;
-            f.ok(format!("{name}: status SMART \"Verified\" menurut macOS."));
-        }
-        Smart::Failing => f.critical(format!(
-            "{name}: status SMART \"{}\" — disk berisiko rusak, segera cadangkan data.",
-            d.smart_status.as_deref().unwrap_or("Failing")
-        )),
-        Smart::Unavailable => {
-            if let Some(s) = &d.smart_status {
-                f.info(format!("{name}: status SMART tidak tersedia ({s})."));
-            }
-        }
-    }
-
-    match d.os_health {
-        Some(DiskHealth::Healthy) => {
-            evidence = true;
-            f.ok(format!(
-                "{name}: OS melaporkan status kesehatan disk Healthy."
+            f.ok(tr!(
+                "storage.reason.smartVerified",
+                format!("{name}: status SMART \"Verified\" menurut macOS."),
+                disk = name
             ));
         }
-        Some(DiskHealth::Warning) => f.warning(format!(
-            "{name}: OS melaporkan status kesehatan disk Warning."
-        )),
-        Some(DiskHealth::Unhealthy) => f.critical(format!(
-            "{name}: OS melaporkan status kesehatan disk Unhealthy — segera cadangkan data."
-        )),
-        None => {}
-    }
-
-    match d.predicted_failure {
-        Some(true) => f.critical(format!(
-            "{name}: driver melaporkan prediksi kegagalan SMART (Pred Fail) — segera cadangkan data."
-        )),
-        Some(false) if d.os_health.is_none() => {
-            evidence = true;
-            f.ok(format!("{name}: tidak ada prediksi kegagalan SMART."));
+        Smart::Failing => {
+            let smart = d.smart_status.as_deref().unwrap_or("Failing");
+            f.critical(tr!(
+                "storage.reason.smartFailing",
+                format!(
+                    "{name}: status SMART \"{smart}\" — disk berisiko rusak, segera cadangkan data."
+                ),
+                disk = name,
+                smart = smart
+            ))
         }
-        _ => {}
-    }
-
-    if d.smart_status.is_none() && d.os_health.is_none() && d.predicted_failure.is_none() {
-        f.info(format!(
-            "{name}: tidak ada data kesehatan disk yang dilaporkan OS."
-        ));
-    }
-
-    if let Some(w) = d.wear_percent {
-        let note = if w >= WEAR_NOTICE_PERCENT {
-            " Nilai ini tinggi, tetapi bersifat eksperimental"
-        } else {
-            " Data eksperimental"
-        };
-        f.info(format!(
-            "{name}: perkiraan umur terpakai {w}%.{note}, belum terverifikasi dan tidak memengaruhi status."
-        ));
+        Smart::Unavailable => match d.smart_status.as_deref() {
+            Some(smart) => f.info(tr!(
+                "storage.reason.smartUnavailable",
+                format!("{name}: status SMART tidak tersedia ({smart})."),
+                disk = name,
+                smart = smart
+            )),
+            None => f.info(tr!(
+                "storage.reason.smartNotReported",
+                format!("{name}: status SMART tidak tersedia (tidak dilaporkan)."),
+                disk = name
+            )),
+        },
     }
 
     if let Some(v) = d.system_volume {
         let free_pct = v.free_bytes as f64 * 100.0 / v.total_bytes as f64;
-        let text = format!(
-            "Ruang kosong volume sistem {} ({} dari {}).",
-            format_percent(free_pct),
-            format_disk_bytes(v.free_bytes),
-            format_disk_bytes(v.total_bytes)
-        );
+        let pct = format_percent(free_pct);
+        let free = format_disk_bytes(v.free_bytes);
+        let total = format_disk_bytes(v.total_bytes);
+        let text = format!("Ruang kosong volume sistem {pct} ({free} dari {total}).");
         if free_pct < FREE_SPACE_WARNING_BELOW {
-            f.warning(format!(
-                "{text} Di bawah {FREE_SPACE_WARNING_BELOW}% dapat mengganggu pembaruan sistem operasi dan kinerja."
+            f.warning(tr!(
+                "storage.reason.freeSpaceLow",
+                format!("{text} Di bawah {FREE_SPACE_WARNING_BELOW}% dapat mengganggu pembaruan macOS dan kinerja."),
+                pct = pct,
+                free = free,
+                total = total,
+                limit = FREE_SPACE_WARNING_BELOW
             ));
         } else {
-            f.ok(text);
+            f.ok(tr!(
+                "storage.reason.freeSpaceOk",
+                text,
+                pct = pct,
+                free = free,
+                total = total
+            ));
         }
     }
     evidence
 }
 
 pub fn assess(disks: &[DiskInfo]) -> CheckResult {
-    // Disk eksternal (mis. flashdisk tempat aplikasi portable) tidak dinilai.
     let (internal, external): (Vec<&DiskInfo>, Vec<&DiskInfo>) =
         disks.iter().partition(|d| d.internal != Some(false));
 
@@ -142,21 +114,32 @@ pub fn assess(disks: &[DiskInfo]) -> CheckResult {
         }
     }
     if internal.is_empty() {
-        f.info("Tidak ada disk internal yang dilaporkan oleh OS.");
+        f.info(tr!(
+            "storage.reason.noInternal",
+            "Tidak ada disk internal yang dilaporkan oleh macOS."
+        ));
     }
     if !external.is_empty() {
-        f.info(format!(
-            "{} disk eksternal terdeteksi dan tidak dinilai.",
-            external.len()
+        let n = external.len();
+        f.info(tr!(
+            "storage.reason.externalIgnored",
+            format!("{n} disk eksternal terdeteksi dan tidak dinilai."),
+            n = n
         ));
     }
 
     let status = f.status(healthy_evidence > 0);
     let summary = match status {
-        Status::Healthy => "Penyimpanan internal dalam kondisi baik.",
-        Status::Warning => "Penyimpanan perlu perhatian.",
-        Status::Critical => "Disk melaporkan masalah kesehatan.",
-        _ => "Kondisi penyimpanan tidak dapat dipastikan.",
+        Status::Healthy => tr!(
+            "storage.summary.healthy",
+            "Penyimpanan internal dalam kondisi baik."
+        ),
+        Status::Warning => tr!("storage.summary.warning", "Penyimpanan perlu perhatian."),
+        Status::Critical => tr!("storage.summary.critical", "Disk melaporkan masalah SMART."),
+        _ => tr!(
+            "storage.summary.unknown",
+            "Kondisi penyimpanan tidak dapat dipastikan."
+        ),
     };
 
     CheckResult::new(CheckId::Storage, status, summary)
@@ -168,63 +151,56 @@ fn metrics(internal: &[&DiskInfo]) -> Vec<Metric> {
     let mut metrics = Vec::new();
     let multiple = internal.len() > 1;
     for d in internal {
-        let prefix = if multiple {
-            format!("{} · ", d.id)
-        } else {
-            String::new()
-        };
-        let label = |l: &str| format!("{prefix}{l}");
+        let group = multiple.then_some(d.id.as_str());
         if let Some(m) = &d.model {
-            metrics.push(Metric::new(label("Model"), m.clone()));
+            metrics.push(Metric::new(
+                tr!("metric.model", "Model").grouped(group),
+                m.clone(),
+            ));
         }
         if let Some(ssd) = d.solid_state {
-            metrics.push(Metric::new(label("Jenis"), if ssd { "SSD" } else { "HDD" }));
+            metrics.push(Metric::new(
+                tr!("storage.metric.type", "Jenis").grouped(group),
+                if ssd { "SSD" } else { "HDD" },
+            ));
         }
         if let Some(p) = &d.protocol {
-            metrics.push(Metric::new(label("Antarmuka"), p.clone()));
+            metrics.push(Metric::new(
+                tr!("storage.metric.interface", "Antarmuka").grouped(group),
+                p.clone(),
+            ));
         }
         if let Some(s) = d.size_bytes {
-            metrics.push(Metric::new(label("Kapasitas"), format_disk_bytes(s)));
+            metrics.push(Metric::new(
+                tr!("storage.metric.capacity", "Kapasitas").grouped(group),
+                format_disk_bytes(s),
+            ));
         }
-        if let Some(s) = &d.smart_status {
-            metrics.push(Metric::new(label("Status SMART"), s.clone()));
-        }
-        if let Some(h) = d.os_health {
-            metrics.push(Metric::new(label("Kesehatan menurut OS"), health_label(h)));
-        }
-        if let Some(p) = d.predicted_failure {
-            metrics.push(Metric::new(label("Prediksi kegagalan SMART"), yes_no_id(p)));
-        }
-        if d.smart_status.is_none() && d.os_health.is_none() && d.predicted_failure.is_none() {
-            metrics.push(Metric::new(label("Status kesehatan"), "Tidak tersedia"));
-        }
+        metrics.push(Metric::new(
+            tr!("storage.metric.smart", "Status SMART").grouped(group),
+            match &d.smart_status {
+                Some(s) => s.clone().into(),
+                None => tr!("value.unavailable", "Tidak tersedia"),
+            },
+        ));
         if let Some(t) = d.trim {
-            metrics.push(Metric::new(label("TRIM"), yes_no_id(t)));
+            metrics.push(Metric::new(
+                tr!("storage.metric.trim", "TRIM").grouped(group),
+                yes_no_id(t),
+            ));
         }
         if let Some(v) = d.system_volume {
+            let free = format_disk_bytes(v.free_bytes);
+            let total = format_disk_bytes(v.total_bytes);
             metrics.push(Metric::new(
-                label("Ruang kosong (sistem)"),
-                format!(
-                    "{} dari {}",
-                    format_disk_bytes(v.free_bytes),
-                    format_disk_bytes(v.total_bytes)
+                tr!("storage.metric.freeSpace", "Ruang kosong (sistem)").grouped(group),
+                tr!(
+                    "value.freeOfTotal",
+                    format!("{free} dari {total}"),
+                    free = free,
+                    total = total
                 ),
             ));
-        }
-        if let Some(w) = d.wear_percent {
-            metrics.push(Metric::experimental(
-                label("Umur terpakai (perkiraan)"),
-                format!("{w}%"),
-            ));
-        }
-        if let Some(h) = d.power_on_hours {
-            metrics.push(Metric::experimental(
-                label("Jam pemakaian"),
-                format!("{h} jam"),
-            ));
-        }
-        if let Some(t) = d.temperature_c {
-            metrics.push(Metric::experimental(label("Suhu disk"), format_celsius(t)));
         }
     }
     metrics
@@ -245,18 +221,6 @@ mod tests {
                 free_bytes: free,
                 total_bytes: total,
             }),
-            ..Default::default()
-        }
-    }
-
-    /// Disk bergaya Windows (contoh format, BUKAN data perangkat asli).
-    fn win_disk(health: Option<DiskHealth>, pred_fail: Option<bool>) -> DiskInfo {
-        DiskInfo {
-            id: "PhysicalDrive0".into(),
-            model: Some("Contoh NVMe".into()),
-            internal: Some(true),
-            os_health: health,
-            predicted_failure: pred_fail,
             ..Default::default()
         }
     }
@@ -297,59 +261,6 @@ mod tests {
     }
 
     #[test]
-    fn windows_os_health_states() {
-        assert_eq!(
-            assess(&[win_disk(Some(DiskHealth::Healthy), Some(false))]).status,
-            Status::Healthy
-        );
-        assert_eq!(
-            assess(&[win_disk(Some(DiskHealth::Warning), None)]).status,
-            Status::Warning
-        );
-        assert_eq!(
-            assess(&[win_disk(Some(DiskHealth::Unhealthy), None)]).status,
-            Status::Critical
-        );
-    }
-
-    #[test]
-    fn windows_predicted_failure() {
-        assert_eq!(
-            assess(&[win_disk(Some(DiskHealth::Healthy), Some(true))]).status,
-            Status::Critical
-        );
-        // Tanpa HealthStatus, "OK" dari driver tetap bukti positif.
-        assert_eq!(
-            assess(&[win_disk(None, Some(false))]).status,
-            Status::Healthy
-        );
-        assert_eq!(assess(&[win_disk(None, None)]).status, Status::Unknown);
-    }
-
-    #[test]
-    fn experimental_wear_never_changes_status() {
-        let mut d = win_disk(Some(DiskHealth::Healthy), Some(false));
-        d.wear_percent = Some(97);
-        d.power_on_hours = Some(1234);
-        d.temperature_c = Some(41.0);
-        let r = assess(&[d]);
-        assert_eq!(
-            r.status,
-            Status::Healthy,
-            "data eksperimental tidak mengubah status"
-        );
-        assert!(r.reasons.iter().any(|x| x.text.contains("eksperimental")));
-        let experimental: Vec<_> = r.metrics.iter().filter(|m| m.experimental).collect();
-        assert_eq!(experimental.len(), 3);
-        assert!(
-            r.metrics
-                .iter()
-                .filter(|m| !m.experimental)
-                .all(|m| !m.label.contains("Umur"))
-        );
-    }
-
-    #[test]
     fn external_disks_are_ignored() {
         let mut usb = disk("Not Supported", 1, 1000);
         usb.internal = Some(false);
@@ -361,5 +272,11 @@ mod tests {
     #[test]
     fn nothing_internal_is_unknown() {
         assert_eq!(assess(&[]).status, Status::Unknown);
+    }
+
+    #[test]
+    fn metrics_are_never_experimental_yet() {
+        let r = assess(&[disk("Verified", 500, 1000)]);
+        assert!(r.metrics.iter().all(|m| !m.experimental));
     }
 }

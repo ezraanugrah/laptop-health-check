@@ -20,6 +20,9 @@ use crate::diagnostics::raw::{
 use crate::diagnostics::types::{CheckId, PlatformSupport};
 
 /// Kontrak yang harus dipenuhi setiap platform.
+/// Catatan keterbatasan: (kode terjemahan, teks Indonesia).
+pub type Note = (&'static str, &'static str);
+
 pub trait Platform {
     fn system_overview() -> Result<SystemOverview, ProbeError>;
     /// `Ok(None)` = perangkat tidak memiliki baterai.
@@ -37,8 +40,8 @@ pub trait Platform {
     /// Nama sumber data per pemeriksaan, untuk ditampilkan ke pengguna.
     fn sources(check: CheckId) -> &'static [&'static str];
     /// Keterbatasan deteksi khusus platform per pemeriksaan (selalu ditampilkan).
-    fn notes(check: CheckId) -> &'static [&'static str];
-    /// Tingkat verifikasi platform di hardware asli (D5/D7).
+    fn notes(check: CheckId) -> &'static [Note];
+    /// Tingkat verifikasi platform di hardware asli.
     fn support() -> PlatformSupport;
 }
 
@@ -65,15 +68,11 @@ mod macos;
 #[cfg(target_os = "macos")]
 pub use macos::MacOs as Current;
 
-#[cfg(target_os = "windows")]
-mod windows;
-#[cfg(target_os = "windows")]
-pub use windows::Windows as Current;
-
-// Linux ditunda; fallback ini menjaga proyek tetap bisa dikompilasi di OS lain.
-#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+// Aplikasi ini khusus macOS. Fallback ini hanya menjaga proyek tetap bisa
+// dikompilasi di OS lain (semua pemeriksaan menjadi "Tidak diketahui").
+#[cfg(not(target_os = "macos"))]
 mod unsupported;
-#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+#[cfg(not(target_os = "macos"))]
 pub use unsupported::Unsupported as Current;
 
 #[cfg(test)]

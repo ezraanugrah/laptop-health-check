@@ -75,8 +75,6 @@ pub fn parse_pmset_therm(text: &str) -> ThermalStatus {
         available_cpus: pmset_value(text, "CPU_Available_CPUs"),
         thermal_warning_recorded: recorded("thermal"),
         performance_warning_recorded: recorded("performance"),
-        // Passive limit / performance limit / MHz limit: khusus Windows.
-        ..Default::default()
     }
 }
 

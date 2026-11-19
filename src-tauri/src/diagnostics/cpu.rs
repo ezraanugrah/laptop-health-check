@@ -1,19 +1,15 @@
-//! Penilaian CPU: informasi & status termal (*throttling*), lintas OS.
-//!
-//! macOS: `CPU_Speed_Limit` & catatan peringatan dari pmset.
-//! Windows: *passive limit* zona termal (pembatasan termal) — batas frekuensi
-//! karena pengaturan daya hanya dicatat sebagai informasi.
+//! Penilaian CPU: informasi & status termal (*throttling*) dari pmset macOS.
 
 use super::findings::Findings;
 use super::format::{format_ghz, format_percent};
 use super::raw::CpuInfo;
+use super::text::Text;
 use super::types::{CheckId, CheckResult, Metric, Status};
 use crate::platform::ProbeError;
+use crate::tr;
 
 /// Batas kecepatan CPU di bawah nilai ini (%) = kritis.
 pub const SPEED_LIMIT_CRITICAL_BELOW: u32 = 50;
-/// Batas pendinginan pasif di bawah nilai ini (%) = kritis.
-pub const PASSIVE_LIMIT_CRITICAL_BELOW: u32 = 50;
 
 pub fn evaluate(data: &Result<CpuInfo, ProbeError>) -> CheckResult {
     match data {
@@ -24,140 +20,202 @@ pub fn evaluate(data: &Result<CpuInfo, ProbeError>) -> CheckResult {
 
 pub fn assess(info: &CpuInfo) -> CheckResult {
     let mut f = Findings::default();
-    let load_text = info
-        .load_percent
-        .map(|l| format!(" (beban saat diperiksa {})", format_percent(l)))
-        .unwrap_or_default();
+    let load = info.load_percent.map(format_percent);
 
     let mut core_evidence = false;
     match &info.thermal {
-        None => f.info("Status termal CPU tidak dapat dibaca dari OS."),
+        None => f.info(tr!(
+            "cpu.reason.thermalUnreadable",
+            "Status termal CPU tidak dapat dibaca (pmset)."
+        )),
         Some(t) => {
             if let (Some(available), Some(logical)) = (t.available_cpus, info.logical_cores)
                 && available < logical
             {
-                f.critical(format!(
-                    "OS menonaktifkan sebagian CPU karena kondisi termal ({available} dari {logical} aktif)."
-                ));
-            }
-            match t.passive_limit_percent {
-                Some(limit) if limit < PASSIVE_LIMIT_CRITICAL_BELOW => {
-                    core_evidence = true;
-                    f.critical(format!(
-                        "Pendinginan pasif membatasi CPU ke {limit}% (pembatasan termal berat){load_text}."
-                    ));
-                }
-                Some(limit) if limit < 100 => {
-                    core_evidence = true;
-                    f.warning(format!(
-                        "Pendinginan pasif membatasi CPU ke {limit}% (pembatasan termal){load_text}."
-                    ));
-                }
-                Some(_) => {
-                    core_evidence = true;
-                    f.ok("Tidak ada pembatasan termal pada zona termal (passive limit 100%).");
-                }
-                None => {}
-            }
-            if let (Some(limit), Some(max)) = (t.limit_mhz, t.max_mhz)
-                && limit < max
-            {
-                f.info(format!(
-                    "Frekuensi maksimum CPU dibatasi ke {limit} dari {max} MHz. Bisa karena pengaturan daya (mode hemat/baterai), sehingga tidak dinilai sebagai masalah termal."
+                f.critical(tr!(
+                    "cpu.reason.cpusDisabled",
+                    format!("macOS menonaktifkan sebagian CPU karena kondisi termal ({available} dari {logical} aktif)."),
+                    available = available,
+                    logical = logical
                 ));
             }
             match t.speed_limit_percent {
                 Some(limit) if limit < SPEED_LIMIT_CRITICAL_BELOW => {
                     core_evidence = true;
-                    f.critical(format!("Kecepatan CPU dibatasi ke {limit}%{load_text}."));
+                    f.critical(match &load {
+                        Some(l) => tr!(
+                            "cpu.reason.speedLimitCriticalLoad",
+                            format!(
+                                "Kecepatan CPU dibatasi ke {limit}% (beban saat diperiksa {l})."
+                            ),
+                            limit = limit,
+                            load = l
+                        ),
+                        None => tr!(
+                            "cpu.reason.speedLimitCritical",
+                            format!("Kecepatan CPU dibatasi ke {limit}%."),
+                            limit = limit
+                        ),
+                    });
                 }
                 Some(limit) if limit < 100 => {
                     core_evidence = true;
-                    f.warning(format!(
-                        "Kecepatan CPU dibatasi ke {limit}% (thermal throttling){load_text}."
-                    ));
+                    f.warning(match &load {
+                        Some(l) => tr!(
+                            "cpu.reason.throttledLoad",
+                            format!("Kecepatan CPU dibatasi ke {limit}% (thermal throttling) (beban saat diperiksa {l})."),
+                            limit = limit,
+                            load = l
+                        ),
+                        None => tr!(
+                            "cpu.reason.throttled",
+                            format!("Kecepatan CPU dibatasi ke {limit}% (thermal throttling)."),
+                            limit = limit
+                        ),
+                    });
                 }
                 Some(_) => {
                     core_evidence = true;
-                    f.ok("Tidak ada pembatasan kecepatan CPU (CPU_Speed_Limit 100%).");
+                    f.ok(tr!(
+                        "cpu.reason.noSpeedLimit",
+                        "Tidak ada pembatasan kecepatan CPU (CPU_Speed_Limit 100%)."
+                    ));
                 }
                 None => {}
             }
             if let Some(limit) = t.scheduler_limit_percent.filter(|l| *l < 100) {
-                f.warning(format!("Penjadwal CPU dibatasi ke {limit}%."));
+                f.warning(tr!(
+                    "cpu.reason.schedulerLimited",
+                    format!("Penjadwal CPU dibatasi ke {limit}%."),
+                    limit = limit
+                ));
             }
             match t.thermal_warning_recorded {
-                Some(true) => f.warning("OS mencatat peringatan termal."),
+                Some(true) => f.warning(tr!(
+                    "cpu.reason.thermalWarning",
+                    "macOS mencatat peringatan termal."
+                )),
                 Some(false) => {
                     core_evidence = true;
-                    f.ok("OS tidak mencatat peringatan termal.");
+                    f.ok(tr!(
+                        "cpu.reason.noThermalWarning",
+                        "macOS tidak mencatat peringatan termal."
+                    ));
                 }
                 None => {}
             }
             if t.performance_warning_recorded == Some(true) {
-                f.warning("OS mencatat peringatan performa.");
+                f.warning(tr!(
+                    "cpu.reason.performanceWarning",
+                    "macOS mencatat peringatan performa."
+                ));
             }
         }
     }
 
     let status = f.status(core_evidence);
     let summary = match status {
-        Status::Healthy => "CPU bekerja tanpa pembatasan termal.",
-        Status::Warning => "CPU mengalami pembatasan termal — perlu perhatian.",
-        Status::Critical => "CPU dibatasi berat karena kondisi termal.",
-        _ => "Status termal CPU tidak dapat dipastikan.",
+        Status::Healthy => tr!(
+            "cpu.summary.healthy",
+            "CPU bekerja tanpa pembatasan termal."
+        ),
+        Status::Warning => tr!(
+            "cpu.summary.warning",
+            "CPU mengalami pembatasan termal — perlu perhatian."
+        ),
+        Status::Critical => tr!(
+            "cpu.summary.critical",
+            "CPU dibatasi berat karena kondisi termal."
+        ),
+        _ => tr!(
+            "cpu.summary.unknown",
+            "Status termal CPU tidak dapat dipastikan."
+        ),
     };
 
     let mut metrics = Vec::new();
     if let Some(m) = &info.model {
-        metrics.push(Metric::new("Model", m.clone()));
+        metrics.push(Metric::new(tr!("metric.model", "Model"), m.clone()));
     }
-    let cores = match (info.physical_cores, info.logical_cores) {
-        (Some(p), Some(l)) => Some(format!("{p} fisik / {l} logis")),
-        (Some(p), None) => Some(format!("{p} fisik")),
-        (None, Some(l)) => Some(format!("{l} logis")),
-        _ => None,
-    };
-    if let Some(c) = cores {
-        let split = match (info.performance_cores, info.efficiency_cores) {
-            (Some(p), Some(e)) => format!(" · {p} performa + {e} efisiensi"),
-            _ => String::new(),
-        };
-        metrics.push(Metric::new("Core", format!("{c}{split}")));
+    if let Some(c) = cores_value(info) {
+        metrics.push(Metric::new(tr!("cpu.metric.cores", "Core"), c));
     }
     if let Some(hz) = info.base_frequency_hz {
-        metrics.push(Metric::new("Frekuensi dasar", format_ghz(hz)));
+        metrics.push(Metric::new(
+            tr!("cpu.metric.baseFrequency", "Frekuensi dasar"),
+            format_ghz(hz),
+        ));
     }
     if let Some(l) = info.load_percent {
-        metrics.push(Metric::new("Beban saat diperiksa", format_percent(l)));
+        metrics.push(Metric::new(
+            tr!("cpu.metric.load", "Beban saat diperiksa"),
+            format_percent(l),
+        ));
     }
     if let Some(t) = &info.thermal {
         if let Some(limit) = t.speed_limit_percent {
-            metrics.push(Metric::new("Batas kecepatan CPU", format!("{limit}%")));
+            metrics.push(Metric::new(
+                tr!("cpu.metric.speedLimit", "Batas kecepatan CPU"),
+                format!("{limit}%"),
+            ));
         }
         if let Some(w) = t.thermal_warning_recorded {
             metrics.push(Metric::new(
-                "Peringatan termal",
-                if w { "Tercatat" } else { "Tidak tercatat" },
+                tr!("cpu.metric.thermalWarning", "Peringatan termal"),
+                if w {
+                    tr!("value.recorded", "Tercatat")
+                } else {
+                    tr!("value.notRecorded", "Tidak tercatat")
+                },
             ));
-        }
-        if let Some(limit) = t.passive_limit_percent {
-            metrics.push(Metric::new("Batas pendinginan pasif", format!("{limit}%")));
-        }
-        if let (Some(limit), Some(max)) = (t.limit_mhz, t.max_mhz) {
-            metrics.push(Metric::new(
-                "Batas frekuensi",
-                format!("{limit} / {max} MHz"),
-            ));
-        }
-        if let Some(p) = t.performance_limit_percent {
-            metrics.push(Metric::new("Pembatasan kinerja", format!("{p}%")));
         }
     }
 
     CheckResult::new(CheckId::Cpu, status, summary)
         .with_reasons(f.into_reasons())
         .with_metrics(metrics)
+}
+
+/// Jumlah core: fisik/logis, ditambah pembagian performa/efisiensi bila ada.
+fn cores_value(info: &CpuInfo) -> Option<Text> {
+    let split = info.performance_cores.zip(info.efficiency_cores);
+    Some(match (info.physical_cores, info.logical_cores, split) {
+        (Some(p), Some(l), Some((pc, ec))) => tr!(
+            "cpu.value.coresBothSplit",
+            format!("{p} fisik / {l} logis · {pc} performa + {ec} efisiensi"),
+            physical = p,
+            logical = l,
+            perf = pc,
+            eff = ec
+        ),
+        (Some(p), Some(l), None) => tr!(
+            "cpu.value.coresBoth",
+            format!("{p} fisik / {l} logis"),
+            physical = p,
+            logical = l
+        ),
+        (Some(p), None, Some((pc, ec))) => tr!(
+            "cpu.value.coresPhysicalSplit",
+            format!("{p} fisik · {pc} performa + {ec} efisiensi"),
+            physical = p,
+            perf = pc,
+            eff = ec
+        ),
+        (Some(p), None, None) => tr!(
+            "cpu.value.coresPhysical",
+            format!("{p} fisik"),
+            physical = p
+        ),
+        (None, Some(l), Some((pc, ec))) => tr!(
+            "cpu.value.coresLogicalSplit",
+            format!("{l} logis · {pc} performa + {ec} efisiensi"),
+            logical = l,
+            perf = pc,
+            eff = ec
+        ),
+        (None, Some(l), None) => tr!("cpu.value.coresLogical", format!("{l} logis"), logical = l),
+        (None, None, _) => return None,
+    })
 }
 
 #[cfg(test)]
@@ -223,47 +281,5 @@ mod tests {
         let r = assess(&info);
         let core = r.metrics.iter().find(|m| m.label == "Core").unwrap();
         assert_eq!(core.value, "8 fisik / 8 logis · 4 performa + 4 efisiensi");
-    }
-
-    /// Data bergaya Windows (contoh format, BUKAN data perangkat asli).
-    fn win(passive: Option<u32>, limit_mhz: Option<u32>) -> CpuInfo {
-        CpuInfo {
-            logical_cores: Some(8),
-            load_percent: Some(12.0),
-            thermal: Some(ThermalStatus {
-                passive_limit_percent: passive,
-                max_mhz: Some(2400),
-                limit_mhz,
-                performance_limit_percent: Some(0),
-                ..Default::default()
-            }),
-            ..Default::default()
-        }
-    }
-
-    #[test]
-    fn windows_passive_limit_boundaries() {
-        assert_eq!(assess(&win(Some(100), None)).status, Status::Healthy);
-        assert_eq!(assess(&win(Some(99), None)).status, Status::Warning);
-        assert_eq!(assess(&win(Some(50), None)).status, Status::Warning);
-        assert_eq!(assess(&win(Some(49), None)).status, Status::Critical);
-    }
-
-    #[test]
-    fn windows_power_limited_frequency_is_info_only() {
-        let r = assess(&win(Some(100), Some(1200)));
-        assert_eq!(r.status, Status::Healthy);
-        assert!(r.reasons.iter().any(|x| x.text.contains("pengaturan daya")));
-        let m = r
-            .metrics
-            .iter()
-            .find(|m| m.label == "Batas frekuensi")
-            .unwrap();
-        assert_eq!(m.value, "1200 / 2400 MHz");
-    }
-
-    #[test]
-    fn windows_without_passive_limit_is_unknown() {
-        assert_eq!(assess(&win(None, Some(2400))).status, Status::Unknown);
     }
 }

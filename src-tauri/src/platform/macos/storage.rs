@@ -68,8 +68,6 @@ pub fn parse_disk(
             .or_else(|| from_item("spsata_trim_support"))
             .and_then(|s| yes_no(&s)),
         system_volume: root.and_then(|r| system_volume_for(id, r)),
-        // Kesehatan OS/prediksi kegagalan/keausan: khusus Windows atau butuh admin.
-        ..Default::default()
     }
 }
 

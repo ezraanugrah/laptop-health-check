@@ -1,5 +1,6 @@
 import type { HardwareStatus, Status } from "../types/diagnostics";
 import { HARDWARE_STATUS_META, STATUS_META, type Tone } from "../lib/status";
+import { useI18n } from "../lib/preferences";
 
 // Nama class ditulis utuh agar terdeteksi oleh Tailwind.
 const TONE_CLASSES: Record<Tone, string> = {
@@ -7,7 +8,7 @@ const TONE_CLASSES: Record<Tone, string> = {
   warning: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200",
   danger: "bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-200",
   neutral: "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-200",
-  muted: "bg-slate-100 text-slate-500 dark:bg-slate-800/60 dark:text-slate-400",
+  muted: "bg-slate-100 text-slate-600 dark:bg-slate-800/60 dark:text-slate-300",
 };
 
 /** Warna titik indikator per tone (dipakai daftar alasan). */
@@ -30,10 +31,17 @@ function Badge({ label, tone }: { label: string; tone: Tone }) {
   );
 }
 
+/** Badge dengan label/tone bebas (dipakai hasil Tes Interaktif). */
+export function ToneBadge({ label, tone }: { label: string; tone: Tone }) {
+  return <Badge label={label} tone={tone} />;
+}
+
 export function StatusBadge({ status }: { status: Status }) {
-  return <Badge {...STATUS_META[status]} />;
+  const { t } = useI18n();
+  return <Badge label={t(STATUS_META[status].label)} tone={STATUS_META[status].tone} />;
 }
 
 export function HardwareStatusBadge({ status }: { status: HardwareStatus }) {
-  return <Badge {...HARDWARE_STATUS_META[status]} />;
+  const { t } = useI18n();
+  return <Badge label={t(HARDWARE_STATUS_META[status].label)} tone={HARDWARE_STATUS_META[status].tone} />;
 }

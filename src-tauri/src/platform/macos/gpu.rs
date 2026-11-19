@@ -52,8 +52,6 @@ fn parse_gpu(g: &Value) -> GpuInfo {
             .and_then(Value::as_array)
             .map(|ds| ds.iter().map(parse_display).collect())
             .unwrap_or_default(),
-        // Driver/kode masalah perangkat/suhu GPU: khusus Windows.
-        ..Default::default()
     }
 }
 
