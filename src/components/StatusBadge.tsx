@@ -10,11 +10,20 @@ const TONE_CLASSES: Record<Tone, string> = {
   muted: "bg-slate-100 text-slate-500 dark:bg-slate-800/60 dark:text-slate-400",
 };
 
+/** Warna titik indikator per tone (dipakai daftar alasan). */
+export const TONE_DOT: Record<Tone, string> = {
+  success: "bg-emerald-500",
+  warning: "bg-amber-500",
+  danger: "bg-rose-500",
+  neutral: "bg-slate-400",
+  muted: "bg-slate-300 dark:bg-slate-600",
+};
+
 export function StatusBadge({ status }: { status: Status }) {
   const { label, tone } = STATUS_META[status];
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${TONE_CLASSES[tone]}`}
+      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${TONE_CLASSES[tone]}`}
     >
       <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
       {label}

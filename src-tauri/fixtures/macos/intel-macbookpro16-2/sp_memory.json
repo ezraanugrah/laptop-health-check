@@ -1,0 +1,31 @@
+{
+  "SPMemoryDataType" : [
+    {
+      "_items" : [
+        {
+          "_name" : "BANK 0/ChannelA-DIMM0",
+          "dimm_manufacturer" : "Samsung",
+          "dimm_part_number" : "K4UBE3D4AA-MGCL",
+          "dimm_serial_number" : "REDACTED",
+          "dimm_size" : "8 GB",
+          "dimm_speed" : "3733 MHz",
+          "dimm_status" : "ok",
+          "dimm_type" : "LPDDR4X"
+        },
+        {
+          "_name" : "BANK 2/ChannelB-DIMM0",
+          "dimm_manufacturer" : "Samsung",
+          "dimm_part_number" : "K4UBE3D4AA-MGCL",
+          "dimm_serial_number" : "REDACTED",
+          "dimm_size" : "8 GB",
+          "dimm_speed" : "3733 MHz",
+          "dimm_status" : "ok",
+          "dimm_type" : "LPDDR4X"
+        }
+      ],
+      "_name" : "global_name",
+      "global_ecc_state" : "ecc_disabled",
+      "is_memory_upgradeable" : "No"
+    }
+  ]
+}

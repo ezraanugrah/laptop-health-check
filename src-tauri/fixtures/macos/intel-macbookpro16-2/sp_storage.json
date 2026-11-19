@@ -1,0 +1,59 @@
+{
+  "SPNVMeDataType" : [
+    {
+      "_items" : [
+        {
+          "_name" : "APPLE SSD AP0512N",
+          "bsd_name" : "disk0",
+          "detachable_drive" : "no",
+          "device_model" : "APPLE SSD AP0512N",
+          "device_revision" : "1310",
+          "device_serial" : "REDACTED",
+          "partition_map_type" : "guid_partition_map_type",
+          "removable_media" : "no",
+          "size" : "500,28 GB",
+          "size_in_bytes" : 500277792768,
+          "smart_status" : "Verified",
+          "spnvme_linkspeed" : "8.0 GT/s",
+          "spnvme_linkwidth" : "x4",
+          "spnvme_trim_support" : "Yes",
+          "volumes" : [
+            {
+              "_name" : "EFI",
+              "bsd_name" : "disk0s1",
+              "file_system" : "MS-DOS FAT32",
+              "iocontent" : "EFI",
+              "size" : "314,6 MB",
+              "size_in_bytes" : 314572800,
+              "volume_uuid" : "REDACTED"
+            },
+            {
+              "_name" : "Macintosh HD - Data",
+              "bsd_name" : "disk0s2",
+              "iocontent" : "Apple_APFS",
+              "size" : "441 GB",
+              "size_in_bytes" : 441000632320
+            },
+            {
+              "_name" : "BOOTCAMP",
+              "bsd_name" : "disk0s3",
+              "file_system" : "NTFS",
+              "free_space" : "32,12 GB",
+              "free_space_in_bytes" : 32119988224,
+              "iocontent" : "Microsoft Basic Data",
+              "mount_point" : "/Volumes/BOOTCAMP",
+              "size" : "58,96 GB",
+              "size_in_bytes" : 58962477056,
+              "volume_uuid" : "REDACTED",
+              "writable" : "no"
+            }
+          ]
+        }
+      ],
+      "_name" : "Apple SSD Controller"
+    }
+  ],
+  "SPSerialATADataType" : [
+
+  ]
+}

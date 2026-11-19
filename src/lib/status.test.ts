@@ -1,43 +1,58 @@
 /// <reference types="node" />
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import type { CheckResult } from "../types/diagnostics";
+import type { CheckResult, Status } from "../types/diagnostics";
 import {
   CHECK_ORDER,
   CHECK_TITLES,
+  REASON_TONE,
   STATUS_META,
   countByStatus,
-  formatBytes,
+  formatDuration,
   formatTimestamp,
+  summarizeCounts,
 } from "./status.ts";
 
-const check = (status: CheckResult["status"]): CheckResult => ({
+const check = (status: Status): CheckResult => ({
   id: "system",
   status,
   summary: "",
+  reasons: [],
   metrics: [],
+  sources: [],
+  notes: [],
 });
 
 test("countByStatus menghitung setiap status", () => {
-  const counts = countByStatus([check("pass"), check("pass"), check("notImplemented")]);
-  assert.equal(counts.pass, 2);
-  assert.equal(counts.notImplemented, 1);
-  assert.equal(counts.fail, 0);
+  const counts = countByStatus([check("healthy"), check("healthy"), check("notApplicable")]);
+  assert.equal(counts.healthy, 2);
+  assert.equal(counts.notApplicable, 1);
+  assert.equal(counts.critical, 0);
 });
 
-test("formatBytes konsisten dengan format_gib di Rust", () => {
-  assert.equal(formatBytes(8 * 1024 ** 3), "8 GB");
-  assert.equal(formatBytes(1_610_612_736), "1.5 GB");
-  assert.equal(formatBytes(null), "Tidak diketahui");
-  assert.equal(formatBytes(0), "Tidak diketahui");
+test("summarizeCounts mengurutkan dari yang paling berat dan melewati nol", () => {
+  const counts = countByStatus([
+    check("healthy"),
+    check("warning"),
+    check("warning"),
+    check("unknown"),
+  ]);
+  assert.equal(summarizeCounts(counts), "2 peringatan · 1 tidak diketahui · 1 sehat");
 });
 
-test("setiap pemeriksaan punya judul dan setiap status punya label", () => {
+test("sembilan pemeriksaan, masing-masing punya judul; setiap status & alasan punya label/tone", () => {
+  assert.equal(CHECK_ORDER.length, 9);
   for (const id of CHECK_ORDER) assert.ok(CHECK_TITLES[id].length > 0);
   for (const meta of Object.values(STATUS_META)) assert.ok(meta.label.length > 0);
+  assert.equal(REASON_TONE.critical, "danger");
+  assert.equal(REASON_TONE.ok, "success");
+});
+
+test("formatDuration", () => {
+  assert.equal(formatDuration(850), "850 ms");
+  assert.equal(formatDuration(2345), "2.3 dtk");
 });
 
 test("formatTimestamp menghasilkan tanggal yang terbaca", () => {
-  const text = formatTimestamp(Date.UTC(2026, 10, 19, 3, 0));
-  assert.match(text, /2026/);
+  assert.match(formatTimestamp(Date.UTC(2026, 10, 19, 3, 0)), /2026/);
 });

@@ -1,0 +1,23 @@
+{
+  "SPHardwareDataType" : [
+    {
+      "_name" : "hardware_overview",
+      "activation_lock_status" : "activation_lock_disabled",
+      "boot_rom_version" : "2103.160.2.0.0 (iBridge: 23.16.16068.0.0,0)",
+      "cpu_type" : "Quad-Core Intel Core i5",
+      "current_processor_speed" : "2 GHz",
+      "l2_cache_core" : "512 KB",
+      "l3_cache" : "6 MB",
+      "machine_model" : "MacBookPro16,2",
+      "machine_name" : "MacBook Pro",
+      "number_processors" : 4,
+      "os_loader_version" : "583~5906",
+      "packages" : 1,
+      "physical_memory" : "16 GB",
+      "platform_cpu_htt" : "htt_enabled",
+      "platform_UUID" : "REDACTED",
+      "provisioning_UDID" : "REDACTED",
+      "serial_number" : "REDACTED"
+    }
+  ]
+}
