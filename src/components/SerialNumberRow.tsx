@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { api } from "../lib/api";
+import { useI18n } from "../lib/preferences";
 
 type State = "hidden" | "loading" | "shown" | "error";
 
@@ -9,6 +10,7 @@ type State = "hidden" | "loading" | "shown" | "error";
  * nilainya dari memori komponen.
  */
 export function SerialNumberRow() {
+  const { t } = useI18n();
   const [state, setState] = useState<State>("hidden");
   const [serial, setSerial] = useState<string | null>(null);
 
@@ -30,15 +32,15 @@ export function SerialNumberRow() {
 
   const value =
     state === "shown"
-      ? (serial ?? "Tidak dilaporkan oleh OS")
+      ? (serial ?? t("serial.notReported"))
       : state === "error"
-        ? "Tidak dapat dibaca"
-        : "Disembunyikan";
+        ? t("serial.unreadable")
+        : t("serial.hidden");
 
   return (
     <div className="mt-3 flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-800/60">
       <div className="min-w-0">
-        <p className="text-[11px] text-slate-500 dark:text-slate-400">Nomor seri</p>
+        <p className="text-[11px] text-slate-500 dark:text-slate-400">{t("serial.label")}</p>
         <p className="truncate font-mono text-xs" aria-live="polite">
           {value}
         </p>
@@ -49,7 +51,7 @@ export function SerialNumberRow() {
           onClick={hide}
           className="shrink-0 rounded-md border border-slate-300 px-2.5 py-1 text-xs hover:bg-white dark:border-slate-600 dark:hover:bg-slate-700"
         >
-          Sembunyikan
+          {t("serial.hide")}
         </button>
       ) : (
         <button
@@ -58,7 +60,7 @@ export function SerialNumberRow() {
           disabled={state === "loading"}
           className="shrink-0 rounded-md border border-slate-300 px-2.5 py-1 text-xs hover:bg-white disabled:opacity-50 dark:border-slate-600 dark:hover:bg-slate-700"
         >
-          {state === "loading" ? "Membaca…" : "Tampilkan"}
+          {state === "loading" ? t("serial.reading") : t("serial.show")}
         </button>
       )}
     </div>

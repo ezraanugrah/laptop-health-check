@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Ditampilkan macOS di dialog izin (TCC). Digabung Tauri ke Info.plist
+	     bundle, dan disematkan ke binary saat `tauri dev`. -->
+	<key>NSCameraUsageDescription</key>
+	<string>Laptop Health Check memakai kamera hanya selama Tes Kamera yang Anda mulai, untuk menampilkan pratinjau. Gambar tidak disimpan dan tidak dikirim ke mana pun.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Laptop Health Check memakai mikrofon hanya selama Tes Mikrofon atau Speaker yang Anda mulai, untuk mengukur level suara. Suara tidak disimpan dan tidak dikirim ke mana pun.</string>
+</dict>
+</plist>

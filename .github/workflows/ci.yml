@@ -1,10 +1,10 @@
-# CI Laptop Health Check
+# CI Laptop Health Check (khusus macOS)
 #
 # Membuktikan: kompilasi (L0), test parser & aturan penilaian (L1), dan smoke
-# test diagnostik di VM runner (L2). TIDAK membuktikan kompatibilitas hardware
-# asli: runner Windows adalah VM Windows Server 2025 dan runner macOS adalah VM
-# tanpa baterai/sensor. Validasi hardware asli (L3–L5) dilakukan terpisah —
-# lihat docs/FASE3-WINDOWS-PRD.md §6.2.
+# test diagnostik di VM runner (L2) untuk macOS Intel (x86_64) dan Apple
+# Silicon (arm64). TIDAK membuktikan kompatibilitas hardware asli: runner macOS
+# adalah VM tanpa baterai/sensor SMC asli. Validasi di Mac asli dilakukan
+# terpisah (lihat TASKS.md, tingkat verifikasi L3).
 #
 # Keamanan: izin read-only, tanpa secret, action dipin ke commit SHA, tidak
 # membuat tag/release, dan tidak membuat/merge pull request.
@@ -38,10 +38,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: windows
-            os: windows-latest # Windows Server 2025 (VM) — bukan Windows 10/11 klien
           - name: macos-intel
-            os: macos-15-intel # x86_64 (VM); tersedia sampai ±2027
+            os: macos-15-intel # x86_64 (VM); runner Intel terakhir, tersedia sampai ±2027
           - name: macos-arm64
             os: macos-latest # arm64 (VM) — bukan bukti Apple Silicon asli
 

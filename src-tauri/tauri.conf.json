@@ -18,7 +18,8 @@
         "height": 720,
         "minWidth": 900,
         "minHeight": 600,
-        "center": true
+        "center": true,
+        "incognito": true
       }
     ],
     "security": {
@@ -29,23 +30,19 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["app", "dmg", "nsis"],
+    "targets": [
+      "app",
+      "dmg"
+    ],
     "category": "Utility",
-    "shortDescription": "Cek kesehatan laptop secara offline",
-    "longDescription": "Laptop Health Check memeriksa kondisi perangkat keras laptop (sistem, baterai, penyimpanan, CPU, memori) secara offline, dapat dipasang atau dijalankan portable dari USB.",
+    "shortDescription": "Cek kesehatan Mac secara offline",
+    "longDescription": "Laptop Health Check memeriksa kondisi perangkat keras Mac (sistem, baterai, penyimpanan, RAM, CPU, suhu, kipas, GPU, Activation Lock/MDM) secara offline, dapat dipasang lewat DMG atau dijalankan portable dari flashdisk.",
     "copyright": "© 2026 Ezra Alfa Anugrahni",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
-      "icons/icon.icns",
-      "icons/icon.ico"
-    ],
-    "windows": {
-      "webviewInstallMode": {
-        "type": "offlineInstaller",
-        "silent": true
-      }
-    }
+      "icons/icon.icns"
+    ]
   }
 }

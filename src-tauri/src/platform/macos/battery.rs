@@ -6,7 +6,7 @@ use serde_json::Value;
 use super::bin::{IOREG, SYSTEM_PROFILER};
 use super::command::{run, run_json};
 use super::parse::{ioreg_bool, ioreg_u32, ioreg_u64, json_str, json_u64, non_empty, percent};
-use crate::diagnostics::raw::{BatteryInfo, CapacityUnit};
+use crate::diagnostics::raw::BatteryInfo;
 use crate::platform::ProbeError;
 
 pub fn probe() -> Result<Option<BatteryInfo>, ProbeError> {
@@ -39,7 +39,6 @@ pub fn parse(ioreg: &str, power: Option<&Value>) -> Option<BatteryInfo> {
     Some(BatteryInfo {
         design_capacity: ioreg_u32(ioreg, "DesignCapacity").filter(|&v| v > 0),
         full_charge_capacity: full,
-        capacity_unit: Some(CapacityUnit::MilliampHours),
         cycle_count: ioreg_u32(ioreg, "CycleCount").or_else(|| {
             health
                 .and_then(|h| json_u64(h, "sppower_battery_cycle_count"))
@@ -62,8 +61,6 @@ pub fn parse(ioreg: &str, power: Option<&Value>) -> Option<BatteryInfo> {
         os_max_capacity_percent: health
             .and_then(|h| json_str(h, "sppower_battery_health_maximum_capacity"))
             .and_then(percent),
-        // Field khusus Windows (jumlah baterai, kimia, kapasitas relatif).
-        ..Default::default()
     })
 }
 

@@ -18,8 +18,6 @@ pub fn probe() -> Result<SystemOverview, ProbeError> {
         cpu: sysctl("machdep.cpu.brand_string").ok(),
         logical_cpus: std::thread::available_parallelism().ok().map(|n| n.get()),
         memory_bytes: sysctl("hw.memsize").ok().and_then(|s| s.parse().ok()),
-        // Field khusus Windows (edisi, firmware, lifecycle OS) tidak diisi di macOS.
-        ..Default::default()
     })
 }
 

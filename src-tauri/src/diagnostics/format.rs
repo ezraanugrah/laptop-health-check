@@ -53,8 +53,15 @@ pub fn format_ghz(hz: u64) -> String {
     format!("{:.1} GHz", hz as f64 / 1e9)
 }
 
-pub fn yes_no_id(value: bool) -> &'static str {
-    if value { "Ya" } else { "Tidak" }
+use super::text::Text;
+use crate::tr;
+
+pub fn yes_no_id(value: bool) -> Text {
+    if value {
+        tr!("value.yes", "Ya")
+    } else {
+        tr!("value.no", "Tidak")
+    }
 }
 
 #[cfg(test)]

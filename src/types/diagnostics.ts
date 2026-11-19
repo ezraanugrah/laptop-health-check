@@ -12,7 +12,7 @@ export type CheckId =
   | "gpu"
   | "ownership";
 
-/** Kelompok pemeriksaan (D1/D3). */
+/** Kelompok pemeriksaan (lihat ARCHITECTURE.md §4). */
 export type CheckCategory = "coreHardware" | "supplementaryHardware" | "deviceSecurity";
 
 export type Status = "healthy" | "warning" | "critical" | "unknown" | "notApplicable";
@@ -30,15 +30,26 @@ export interface HardwareSummary {
 
 export type ReasonLevel = "critical" | "warning" | "ok" | "info";
 
+/**
+ * Pesan berkode dari Rust (`diagnostics/text.rs`): `text` = Bahasa Indonesia
+ * (fallback), `code` + `params` diterjemahkan frontend (src/i18n).
+ */
 export interface Reason {
   level: ReasonLevel;
   text: string;
+  code?: string;
+  params?: Record<string, string>;
 }
 
 export interface Metric {
   label: string;
+  labelCode?: string;
+  /** Bisa berisi `group` (mis. "disk0") yang ditampilkan di depan label. */
+  labelParams?: Record<string, string>;
   value: string;
-  /** Data eksperimental yang belum diverifikasi di hardware asli (D5). */
+  valueCode?: string;
+  valueParams?: Record<string, string>;
+  /** Data eksperimental yang belum diverifikasi di hardware asli; tidak pernah mengubah status. */
   experimental: boolean;
 }
 
@@ -47,10 +58,13 @@ export interface CheckResult {
   category: CheckCategory;
   status: Status;
   summary: string;
+  summaryCode?: string;
+  summaryParams?: Record<string, string>;
   reasons: Reason[];
   metrics: Metric[];
   sources: string[];
-  notes: string[];
+  /** Keterbatasan deteksi: teks Indonesia + kode terjemahan. */
+  notes: { text: string; code?: string; params?: Record<string, string> }[];
 }
 
 export interface DiagnosticsReport {
@@ -66,6 +80,7 @@ export type SupportLevel = "verified" | "preview";
 export interface PlatformSupport {
   level: SupportLevel;
   note: string;
+  noteCode?: string;
 }
 
 export interface AppInfo {

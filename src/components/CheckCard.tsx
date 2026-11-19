@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { CheckId, CheckResult } from "../types/diagnostics";
 import { REASON_TONE } from "../lib/status";
 import { StatusBadge, TONE_DOT } from "./StatusBadge";
+import { useI18n } from "../lib/preferences";
 
 interface Props {
   id: CheckId;
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export function CheckCard({ id, title, result, loading, children }: Props) {
+  const { t, tx, label } = useI18n();
   return (
     <article className="flex flex-col rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
       <header className="flex items-start justify-between gap-3">
@@ -21,23 +23,27 @@ export function CheckCard({ id, title, result, loading, children }: Props) {
         {result ? (
           <StatusBadge status={result.status} />
         ) : (
-          loading && <span className="text-xs text-slate-400">Memeriksa…</span>
+          loading && <span className="text-xs text-slate-500 dark:text-slate-400">{t("card.checking")}</span>
         )}
       </header>
 
       <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-400">
-        {result ? result.summary : loading ? "Membaca data dari perangkat…" : "Belum dijalankan."}
+        {result
+          ? tx({ text: result.summary, code: result.summaryCode, params: result.summaryParams })
+          : loading
+            ? t("card.reading")
+            : t("card.notRun")}
       </p>
 
       {result && result.reasons.length > 0 && (
-        <ul className="mt-3 space-y-1 text-xs leading-snug" aria-label="Alasan status">
+        <ul className="mt-3 space-y-1 text-xs leading-snug" aria-label={t("card.reasons")}>
           {result.reasons.map((r, i) => (
             <li key={i} className="flex gap-2">
               <span
                 className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${TONE_DOT[REASON_TONE[r.level]]}`}
                 aria-hidden
               />
-              <span className="text-slate-700 dark:text-slate-300">{r.text}</span>
+              <span className="text-slate-700 dark:text-slate-300">{tx(r)}</span>
             </li>
           ))}
         </ul>
@@ -45,40 +51,43 @@ export function CheckCard({ id, title, result, loading, children }: Props) {
 
       {result && result.metrics.length > 0 && (
         <dl className="mt-3 space-y-1 border-t border-slate-100 pt-3 text-xs dark:border-slate-800">
-          {result.metrics.map((m) => (
+          {result.metrics.map((m) => {
+            const value = m.valueCode ? tx({ text: m.value, code: m.valueCode, params: m.valueParams }) : m.value;
+            return (
             <div key={m.label} className="flex justify-between gap-3">
-              <dt className="flex shrink-0 items-center gap-1.5 text-slate-500 dark:text-slate-400">
-                {m.label}
+              <dt className="flex min-w-0 shrink-0 items-center gap-1.5 text-slate-600 dark:text-slate-400">
+                {label(m.label, m.labelCode, m.labelParams)}
                 {m.experimental && (
                   <span
                     className="rounded bg-amber-100 px-1 py-px text-[10px] font-medium uppercase tracking-wide text-amber-800 dark:bg-amber-900/40 dark:text-amber-200"
-                    title="Data eksperimental: belum diverifikasi di hardware asli dan tidak memengaruhi status."
+                    title={t("card.experimentalHint")}
                   >
-                    eksperimental
+                    {t("card.experimental")}
                   </span>
                 )}
               </dt>
-              <dd className="truncate text-right font-medium" title={m.value}>
-                {m.value}
+              <dd className="truncate text-right font-medium" title={value}>
+                {value}
               </dd>
             </div>
-          ))}
+            );
+          })}
         </dl>
       )}
 
       {children}
 
       {result && (result.sources.length > 0 || result.notes.length > 0) && (
-        <footer className="mt-auto space-y-1 pt-3 text-[11px] leading-snug text-slate-400 dark:text-slate-500">
-          {result.sources.length > 0 && <p>Sumber: {result.sources.join(" · ")}</p>}
+        <footer className="mt-auto space-y-1 pt-3 text-[11px] leading-snug text-slate-500 dark:text-slate-400">
+          {result.sources.length > 0 && <p>{t("card.sources", { list: result.sources.join(" · ") })}</p>}
           {result.notes.length > 0 && (
             <details open={id === "ownership"}>
-              <summary className="cursor-pointer select-none text-slate-500 dark:text-slate-400">
-                Keterbatasan deteksi
+              <summary className="cursor-pointer select-none text-slate-600 dark:text-slate-400">
+                {t("card.limitations")}
               </summary>
               <ul className="mt-1 list-disc space-y-0.5 pl-4">
                 {result.notes.map((n) => (
-                  <li key={n}>{n}</li>
+                  <li key={n.code ?? n.text}>{tx(n)}</li>
                 ))}
               </ul>
             </details>

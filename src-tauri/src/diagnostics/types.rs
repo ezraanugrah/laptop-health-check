@@ -5,7 +5,9 @@
 
 use serde::Serialize;
 
+use super::text::{Params, Text};
 use crate::platform::ProbeError;
+use crate::tr;
 
 /// Identitas setiap pemeriksaan.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -22,7 +24,7 @@ pub enum CheckId {
     Ownership,
 }
 
-/// Kelompok pemeriksaan (keputusan D1/D3).
+/// Kelompok pemeriksaan (lihat ARCHITECTURE.md §4).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum CheckCategory {
@@ -30,7 +32,8 @@ pub enum CheckCategory {
     CoreHardware,
     /// Hardware pelengkap: boleh tidak terukur tanpa mengubah kesimpulan inti.
     SupplementaryHardware,
-    /// Identitas perangkat, keamanan OS, dan kepemilikan — BUKAN kesehatan hardware.
+    /// Identitas perangkat dan kepemilikan (Activation Lock/MDM) — BUKAN
+    /// kesehatan hardware.
     DeviceSecurity,
 }
 
@@ -103,11 +106,13 @@ pub enum ReasonLevel {
 #[serde(rename_all = "camelCase")]
 pub struct Reason {
     pub level: ReasonLevel,
-    pub text: String,
+    /// Teks Indonesia + kode terjemahan + parameter (diratakan ke JSON).
+    #[serde(flatten)]
+    pub text: Text,
 }
 
 impl Reason {
-    pub fn info(text: impl Into<String>) -> Self {
+    pub fn info(text: impl Into<Text>) -> Self {
         Self {
             level: ReasonLevel::Info,
             text: text.into(),
@@ -120,25 +125,36 @@ impl Reason {
 #[serde(rename_all = "camelCase")]
 pub struct Metric {
     pub label: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub label_code: Option<&'static str>,
+    #[serde(skip_serializing_if = "Params::is_empty")]
+    pub label_params: Params,
     pub value: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub value_code: Option<&'static str>,
+    #[serde(skip_serializing_if = "Params::is_empty")]
+    pub value_params: Params,
     /// Berasal dari sumber eksperimental yang belum diverifikasi di hardware
-    /// asli (keputusan D5). UI wajib menandainya.
+    /// asli. UI wajib menandainya, dan data ini tidak boleh mengubah status.
+    /// Saat ini belum ada metrik eksperimental di macOS; field disiapkan untuk
+    /// fitur berikutnya (mis. sensor Apple Silicon yang belum tervalidasi).
     pub experimental: bool,
 }
 
 impl Metric {
-    pub fn new(label: impl Into<String>, value: impl Into<String>) -> Self {
+    /// Label/nilai berkode (`tr!`) diterjemahkan frontend; teks biasa
+    /// (nama hardware, angka) ditampilkan apa adanya.
+    pub fn new(label: impl Into<Text>, value: impl Into<Text>) -> Self {
+        let label = label.into();
+        let value = value.into();
         Self {
-            label: label.into(),
-            value: value.into(),
+            label: label.text,
+            label_code: label.code,
+            label_params: label.params,
+            value: value.text,
+            value_code: value.code,
+            value_params: value.params,
             experimental: false,
-        }
-    }
-
-    pub fn experimental(label: impl Into<String>, value: impl Into<String>) -> Self {
-        Self {
-            experimental: true,
-            ..Self::new(label, value)
         }
     }
 }
@@ -150,22 +166,29 @@ pub struct CheckResult {
     pub category: CheckCategory,
     pub status: Status,
     pub summary: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub summary_code: Option<&'static str>,
+    #[serde(skip_serializing_if = "Params::is_empty")]
+    pub summary_params: Params,
     /// Bukti/alasan status, terurut dari yang paling berat.
     pub reasons: Vec<Reason>,
     pub metrics: Vec<Metric>,
     /// Sumber data yang dipakai (mis. "ioreg AppleSmartBattery").
     pub sources: Vec<String>,
     /// Keterbatasan deteksi yang perlu diketahui pengguna (dari lapisan platform).
-    pub notes: Vec<String>,
+    pub notes: Vec<Text>,
 }
 
 impl CheckResult {
-    pub fn new(id: CheckId, status: Status, summary: impl Into<String>) -> Self {
+    pub fn new(id: CheckId, status: Status, summary: impl Into<Text>) -> Self {
+        let summary = summary.into();
         Self {
             id,
             category: id.category(),
             status,
-            summary: summary.into(),
+            summary: summary.text,
+            summary_code: summary.code,
+            summary_params: summary.params,
             reasons: Vec::new(),
             metrics: Vec::new(),
             sources: Vec::new(),
@@ -175,8 +198,16 @@ impl CheckResult {
 
     /// Data gagal dibaca: status `Unknown` beserta penyebabnya.
     pub fn from_probe_error(id: CheckId, err: &ProbeError) -> Self {
-        Self::new(id, Status::Unknown, "Data tidak dapat dibaca.")
-            .with_reasons(vec![Reason::info(format!("Kendala: {err}"))])
+        Self::new(
+            id,
+            Status::Unknown,
+            tr!("common.summary.unreadable", "Data tidak dapat dibaca."),
+        )
+        .with_reasons(vec![Reason::info(tr!(
+            "common.reason.probeError",
+            format!("Kendala: {err}"),
+            detail = err
+        ))])
     }
 
     pub fn with_reasons(mut self, reasons: Vec<Reason>) -> Self {
@@ -194,8 +225,12 @@ impl CheckResult {
         self
     }
 
-    pub fn with_notes(mut self, notes: &[&str]) -> Self {
-        self.notes = notes.iter().map(|s| s.to_string()).collect();
+    /// Catatan keterbatasan dari lapisan platform: pasangan (kode, teks Indonesia).
+    pub fn with_notes(mut self, notes: &[(&'static str, &'static str)]) -> Self {
+        self.notes = notes
+            .iter()
+            .map(|(code, text)| Text::coded(code, *text, []))
+            .collect();
         self
     }
 }
@@ -212,7 +247,7 @@ pub struct DiagnosticsReport {
     pub checks: Vec<CheckResult>,
 }
 
-/// Tingkat verifikasi dukungan platform tempat aplikasi berjalan (D5/D7).
+/// Tingkat verifikasi dukungan platform tempat aplikasi berjalan (Intel = verified, Apple Silicon = preview).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum SupportLevel {
@@ -227,6 +262,18 @@ pub enum SupportLevel {
 pub struct PlatformSupport {
     pub level: SupportLevel,
     pub note: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub note_code: Option<&'static str>,
+}
+
+impl PlatformSupport {
+    pub fn new(level: SupportLevel, note: Text) -> Self {
+        Self {
+            level,
+            note: note.text,
+            note_code: note.code,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]

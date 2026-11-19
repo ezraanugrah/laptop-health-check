@@ -1,5 +1,6 @@
 //! Pengumpul bukti untuk menentukan status sebuah pemeriksaan.
 
+use super::text::Text;
 use super::types::{Reason, ReasonLevel, Status};
 
 #[derive(Debug, Default)]
@@ -10,27 +11,27 @@ pub struct Findings {
 }
 
 impl Findings {
-    pub fn critical(&mut self, text: impl Into<String>) {
+    pub fn critical(&mut self, text: impl Into<Text>) {
         self.critical += 1;
         self.push(ReasonLevel::Critical, text);
     }
 
-    pub fn warning(&mut self, text: impl Into<String>) {
+    pub fn warning(&mut self, text: impl Into<Text>) {
         self.warning += 1;
         self.push(ReasonLevel::Warning, text);
     }
 
     /// Bukti positif bahwa sesuatu dalam kondisi baik.
-    pub fn ok(&mut self, text: impl Into<String>) {
+    pub fn ok(&mut self, text: impl Into<Text>) {
         self.push(ReasonLevel::Ok, text);
     }
 
     /// Informasi netral, mis. data yang tidak tersedia.
-    pub fn info(&mut self, text: impl Into<String>) {
+    pub fn info(&mut self, text: impl Into<Text>) {
         self.push(ReasonLevel::Info, text);
     }
 
-    fn push(&mut self, level: ReasonLevel, text: impl Into<String>) {
+    fn push(&mut self, level: ReasonLevel, text: impl Into<Text>) {
         self.reasons.push(Reason {
             level,
             text: text.into(),

@@ -42,8 +42,8 @@ Setelah merge: sinkronkan lokal dengan `git fetch origin` lalu `git merge --ff-o
 | Ubah pengaturan repo / ruleset | ❌ | Pemilik yang mengubah |
 
 Format persetujuan yang dianggap sah (ditulis pemilik di chat), contoh:
-- "Saya setujui: push `feature/windows-diagnostics`."
-- "Saya setujui: buat PR draft `feature/windows-diagnostics` → `main`."
+- "Saya setujui: push `feature/macos-only`."
+- "Saya setujui: buat PR draft `feature/macos-only` → `main`."
 
 Persetujuan berlaku **satu kali untuk aksi yang disebut**; tidak berlaku untuk aksi lain atau sesi berikutnya.
 Setelah push, Claude memeriksa ulang status PR tepat sebelum melapor dan menyebut bahwa status dapat berubah setelah pemeriksaan.
@@ -65,7 +65,7 @@ Rulesets tersedia gratis untuk repositori publik.
      - *Required approvals*: sesuai pilihan §4.1
      - ✅ *Require conversation resolution before merging*
      - *Allowed merge methods*: pilih satu saja (mis. **Merge** atau **Squash**)
-   - ✅ **Require status checks to pass** — aktifkan **setelah** workflow CI Fase 3 berjalan sekali, lalu tambahkan check `windows`, `macos-intel`, dan `macos-arm64` (nama job di workflow `CI`)
+   - ✅ **Require status checks to pass** — tambahkan check `macos-intel` dan `macos-arm64` (nama job di workflow `CI`; keduanya sudah pernah berjalan sehingga bisa dipilih). Check `windows` lama **jangan** ditambahkan karena job itu sudah dihapus dan tidak akan pernah lapor. Dengan aturan ini, PR yang CI-nya gagal tidak bisa di-merge (PR #2 di-merge saat job `windows` gagal karena belum ada aturan ini).
    - ⬜ *Require linear history* — jangan dicentang bila memakai metode Merge commit
    - ⬜ *Require signed commits* — jangan dicentang (commit lokal belum ditandatangani)
 6. **Create**.
@@ -105,3 +105,9 @@ Harus memuat minimal: `deletion`, `non_fast_forward`, `pull_request` (dan `requi
 - Tidak ditemukan: atribusi GitHub App, auto-merge, GitHub Actions, webhook, deploy key, kolaborator lain, git hooks/alias lokal, hook Claude Code, sesi Claude lain di repo ini, atau perintah PR/merge dari Claude.
 - Isi `main` setelah merge identik dengan commit Fase 2 `077d1d3`; tidak ada perubahan yang hilang atau tambahan.
 - Penyebab belum dapat dipastikan; pemilik disarankan meninjau Sessions/Applications/Tokens di GitHub.
+
+## 6. Catatan PR #2 (19 Nov 2026)
+
+- PR #2 `feature/windows-diagnostics` → `main` dibuat pukul 04:57:33Z dan di-merge pukul 04:59:01Z oleh akun pemilik (`851586b`). Pemilik sudah mengetahui merge ini.
+- Saat di-merge, job CI `windows` gagal (clippy `dead_code`), sedangkan job `macos-intel` dan `macos-arm64` lolos. Merge tetap bisa dilakukan karena belum ada ruleset (§4).
+- Scope kemudian diubah menjadi khusus macOS. Kode Windows dikeluarkan di branch `feature/macos-only`, dan job `windows` dihapus dari workflow.

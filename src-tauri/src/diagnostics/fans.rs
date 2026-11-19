@@ -4,8 +4,10 @@ use super::findings::Findings;
 use super::format::format_rpm;
 use super::is_light_load;
 use super::raw::{FanReading, SensorReadings};
+use super::text::Text;
 use super::types::{CheckId, CheckResult, Metric, Reason, Status};
 use crate::platform::ProbeError;
+use crate::tr;
 
 /// Kipas di bawah rasio ini terhadap RPM minimum = peringatan.
 pub const BELOW_MIN_WARNING_RATIO: f64 = 0.8;
@@ -23,18 +25,24 @@ pub fn evaluate(
         Err(err) => CheckResult::from_probe_error(CheckId::Fans, err),
         Ok(readings) => match &readings.fans {
             // Data tidak tersedia ≠ tidak ada kipas: tetap "Tidak diketahui".
-            None => CheckResult::new(CheckId::Fans, Status::Unknown, "Data kipas tidak tersedia.")
-                .with_reasons(vec![Reason::info(
-                    "OS/sensor tidak menyediakan data kipas pada perangkat ini.",
-                )]),
+            None => CheckResult::new(
+                CheckId::Fans,
+                Status::Unknown,
+                tr!("fans.summary.noData", "Data kipas tidak tersedia."),
+            )
+            .with_reasons(vec![Reason::info(tr!(
+                "fans.reason.noData",
+                "OS/sensor tidak menyediakan data kipas pada perangkat ini."
+            ))]),
             Some(fans) if fans.is_empty() => CheckResult::new(
                 CheckId::Fans,
                 Status::NotApplicable,
-                "Perangkat ini tidak memiliki kipas.",
+                tr!("fans.summary.noFans", "Perangkat ini tidak memiliki kipas."),
             )
-            .with_reasons(vec![Reason::info(
-                "Sensor melaporkan 0 kipas (normal untuk model tanpa kipas).",
-            )]),
+            .with_reasons(vec![Reason::info(tr!(
+                "fans.reason.zeroFans",
+                "Sensor melaporkan 0 kipas (normal untuk model tanpa kipas)."
+            ))]),
             Some(fans) => assess(fans, cpu_max_temp, cpu_load),
         },
     }
@@ -51,22 +59,39 @@ pub fn assess(
     let mut evidence = false;
 
     for fan in fans {
-        let name = format!("Kipas {}", fan.index + 1);
+        let n = fan.index + 1;
+        let name = format!("Kipas {n}");
         let Some(actual) = fan.actual_rpm else {
-            f.info(format!("{name}: RPM aktual tidak terbaca."));
+            f.info(tr!(
+                "fans.reason.rpmUnreadable",
+                format!("{name}: RPM aktual tidak terbaca."),
+                fan = n
+            ));
             continue;
         };
         evidence = true;
         match fan.min_rpm.filter(|m| *m > 0.0) {
-            Some(min) if actual <= 0.0 => f.critical(format!(
-                "{name} tidak berputar padahal minimum {} — kemungkinan macet/rusak.",
-                format_rpm(min)
-            )),
-            Some(min) if actual < min * BELOW_MIN_WARNING_RATIO => f.warning(format!(
-                "{name} berputar {} di bawah minimum {}.",
-                format_rpm(actual),
-                format_rpm(min)
-            )),
+            Some(min) if actual <= 0.0 => {
+                let min = format_rpm(min);
+                f.critical(tr!(
+                    "fans.reason.stopped",
+                    format!(
+                        "{name} tidak berputar padahal minimum {min} — kemungkinan macet/rusak."
+                    ),
+                    fan = n,
+                    min = min
+                ))
+            }
+            Some(min) if actual < min * BELOW_MIN_WARNING_RATIO => {
+                let (rpm, min) = (format_rpm(actual), format_rpm(min));
+                f.warning(tr!(
+                    "fans.reason.belowMin",
+                    format!("{name} berputar {rpm} di bawah minimum {min}."),
+                    fan = n,
+                    rpm = rpm,
+                    min = min
+                ))
+            }
             _ => {}
         }
         if let Some(max) = fan.max_rpm.filter(|m| *m > 0.0)
@@ -74,45 +99,76 @@ pub fn assess(
             && cpu_normal
             && actual >= max * NEAR_MAX_WARNING_RATIO
         {
-            f.warning(format!(
-                "{name} berputar {} (mendekati maksimum {}) saat beban CPU ringan. Bisa karena beban berat sebelumnya; bila menetap setelah beberapa menit, periksa debu/ventilasi.",
-                format_rpm(actual),
-                format_rpm(max)
+            let (rpm, max) = (format_rpm(actual), format_rpm(max));
+            f.warning(tr!(
+                "fans.reason.nearMaxLightLoad",
+                format!("{name} berputar {rpm} (mendekati maksimum {max}) saat beban CPU ringan. Bisa karena beban berat sebelumnya; bila menetap setelah beberapa menit, periksa debu/ventilasi."),
+                fan = n,
+                rpm = rpm,
+                max = max
             ));
         }
-        f.ok(format!("{name} terbaca berputar {}.", format_rpm(actual)));
+        let rpm = format_rpm(actual);
+        f.ok(tr!(
+            "fans.reason.spinning",
+            format!("{name} terbaca berputar {rpm}."),
+            fan = n,
+            rpm = rpm
+        ));
     }
 
     let all_stopped = fans.iter().all(|x| x.actual_rpm.is_some_and(|a| a <= 0.0));
     if let Some(t) = cpu_max_temp.filter(|t| *t >= HOT_CPU_C)
         && all_stopped
     {
-        f.critical(format!("Suhu CPU {t:.1} °C tetapi semua kipas berhenti."));
+        let temp = format!("{t:.1}");
+        f.critical(tr!(
+            "fans.reason.hotAllStopped",
+            format!("Suhu CPU {temp} °C tetapi semua kipas berhenti."),
+            temp = temp
+        ));
     }
 
     let status = f.status(evidence);
     let summary = match status {
-        Status::Healthy => "Kipas bekerja normal.",
-        Status::Warning => "Kipas perlu perhatian.",
-        Status::Critical => "Kipas bermasalah.",
-        _ => "Kondisi kipas tidak dapat dipastikan.",
+        Status::Healthy => tr!("fans.summary.healthy", "Kipas bekerja normal."),
+        Status::Warning => tr!("fans.summary.warning", "Kipas perlu perhatian."),
+        Status::Critical => tr!("fans.summary.critical", "Kipas bermasalah."),
+        _ => tr!(
+            "fans.summary.unknown",
+            "Kondisi kipas tidak dapat dipastikan."
+        ),
     };
 
     let metrics = fans
         .iter()
         .map(|fan| {
-            let actual = fan
-                .actual_rpm
-                .map(format_rpm)
-                .unwrap_or_else(|| "Tidak terbaca".into());
-            let range = match (fan.min_rpm, fan.max_rpm) {
-                (Some(min), Some(max)) => format!(" (min {} · maks {})", min.round(), max.round()),
-                _ => String::new(),
+            let n = fan.index + 1;
+            let range = fan.min_rpm.zip(fan.max_rpm);
+            let value: Text = match (fan.actual_rpm.map(format_rpm), range) {
+                (Some(rpm), Some((min, max))) => {
+                    let (min, max) = (min.round(), max.round());
+                    tr!(
+                        "fans.value.rpmRange",
+                        format!("{rpm} (min {min} · maks {max})"),
+                        rpm = rpm,
+                        min = min,
+                        max = max
+                    )
+                }
+                (Some(rpm), None) => rpm.into(),
+                (None, Some((min, max))) => {
+                    let (min, max) = (min.round(), max.round());
+                    tr!(
+                        "fans.value.unreadableRange",
+                        format!("Tidak terbaca (min {min} · maks {max})"),
+                        min = min,
+                        max = max
+                    )
+                }
+                (None, None) => tr!("value.unreadable", "Tidak terbaca"),
             };
-            Metric::new(
-                format!("Kipas {}", fan.index + 1),
-                format!("{actual}{range}"),
-            )
+            Metric::new(tr!("fans.metric.fan", format!("Kipas {n}"), n = n), value)
         })
         .collect();
 
