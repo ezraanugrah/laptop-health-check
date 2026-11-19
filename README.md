@@ -2,7 +2,7 @@
 
 Aplikasi desktop untuk mengecek kesehatan laptop, dibangun dengan **Tauri 2**, **React**, **TypeScript**, **Rust**, dan **Tailwind CSS v4**.
 
-> Status: Fase 1 (fondasi) selesai. Baru pemeriksaan **Sistem** yang aktif; pemeriksaan lain menyusul (lihat [ROADMAP.md](ROADMAP.md)).
+> Status: Fase 2 (diagnostik inti macOS) — 9 pemeriksaan berbasis data asli: Sistem, Baterai, SSD/HDD, RAM, CPU & status termal, Temperatur, Kipas, GPU, Activation Lock & MDM (+ nomor seri opt-in). Windows menyusul di Fase 3 (lihat [ROADMAP.md](ROADMAP.md)).
 
 Target: macOS (Intel & Apple Silicon) dan Windows 10/11 · berjalan 100% offline · mode installer & portable USB.
 

@@ -6,7 +6,7 @@ Pengembangan dilakukan bertahap. **Setiap fase diakhiri laporan dan persetujuan 
 |---|---|---|
 | 0 | Persiapan environment & repo | ✅ Selesai |
 | 1 | Fondasi proyek | ✅ Selesai & disetujui |
-| 2 | Diagnostik inti macOS | ⏳ Berikutnya (rencana menunggu persetujuan) |
+| 2 | Diagnostik inti macOS | ✅ Selesai di branch fitur (menunggu persetujuan commit/merge) |
 | 3 | Diagnostik inti Windows + CI | Direncanakan |
 | 4 | Tes interaktif | Direncanakan |
 | 5 | Skor kesehatan & laporan PDF/JSON | Direncanakan |
@@ -30,8 +30,8 @@ Git di-init (`main`), remote `origin` terhubung ke GitHub, dan environment dicek
 - Dokumen PRD, ARCHITECTURE, ROADMAP, TASKS, dan CLAUDE.md, beserta keputusan produk.
 - Pemeriksaan: build, typecheck, clippy, fmt, test Rust + frontend. Aplikasi berjalan di macOS (mode dev dan produksi).
 
-### Fase 2 — Diagnostik inti macOS
-Baterai, SSD/HDD, CPU, RAM, temperatur, kipas, GPU, dan nomor seri (*opt-in*) di macOS. Diuji langsung di Intel; Apple Silicon diuji bila ada perangkat.
+### Fase 2 — Diagnostik inti macOS ✅
+Baterai, SSD/HDD, RAM, CPU & status termal, temperatur, kipas, GPU, nomor seri (*opt-in*), serta Activation Lock & MDM di macOS. Sudah diuji di MacBook Intel asli; jalur Apple Silicon sudah dibuat tetapi belum diverifikasi (lihat TASKS.md).
 **Kriteria selesai:** setiap pemeriksaan memberi status dari data nyata, atau "Tidak diketahui"/"Tidak berlaku" beserta alasannya. Dilengkapi unit test ambang penilaian dengan *fixture* dari perangkat asli dan uji di mesin nyata.
 
 ### Fase 3 — Diagnostik inti Windows + CI

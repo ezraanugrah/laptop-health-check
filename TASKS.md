@@ -20,21 +20,35 @@ Legenda: `[x]` selesai · `[ ]` belum · **(izin)** = butuh persetujuan pemilik 
 - [x] Commit pertama ke `main`
 - [ ] Push ke `origin/main` **(izin)**
 
-## Fase 2 — Diagnostik inti macOS (rencana detail menunggu persetujuan)
+## Fase 2 — Diagnostik inti macOS ✅ (branch `feature/core-diagnostics-macos`, belum di-commit)
 
-Ruang lingkup: Baterai, SSD/HDD, CPU, RAM, Temperatur, Kipas, GPU, Nomor seri (*opt-in*).
-Aturan: hanya data nyata; data tak tersedia = "Tidak diketahui"/"Tidak berlaku" beserta alasannya; *fixture* test diambil dari output perangkat asli dengan nomor seri dihapus.
+Aturan: hanya data nyata; data tak tersedia = "Tidak diketahui"/"Tidak berlaku" beserta alasannya; *fixture* test dari output perangkat asli yang disanitasi.
 
-- [ ] Persiapan: perluas tipe IPC, helper `system_profiler`/`ioreg` dengan timeout, *fixture* test
-- [ ] Baterai
-- [ ] SSD/HDD
-- [ ] RAM
-- [ ] CPU + status termal/*throttling*
-- [ ] Temperatur + Kipas (pembaca SMC)
-- [ ] GPU
-- [ ] Nomor seri *opt-in* (tersembunyi secara default)
-- [ ] UI: kartu baru, progres, alasan "Tidak diketahui", tombol tampilkan nomor seri
-- [ ] Uji di MacBook Intel asli; Apple Silicon bila perangkat tersedia
+- [x] Push Fase 1 (`626b4a5`) ke `origin/main`, buat branch `feature/core-diagnostics-macos`
+- [x] Model data: status Sehat/Peringatan/Kritis/Tidak diketahui/Tidak berlaku, alasan bertingkat, sumber data, keterbatasan
+- [x] Helper perintah ber-timeout (tanpa shell, path absolut) + konversi plist via `plutil`
+- [x] Skrip `scripts/capture-macos-fixtures.sh` + fixture tersanitasi `intel-macbookpro16-2`
+- [x] Battery Health (kapasitas vs desain, siklus vs batas desain, kondisi macOS, PermanentFailure, suhu)
+- [x] SSD/HDD Health (SMART, jenis, antarmuka, TRIM, ruang kosong volume sistem; disk eksternal tidak dinilai)
+- [x] RAM Information & Memory Pressure (modul + status, pemakaian, swap, tekanan memori)
+- [x] CPU Information & Thermal Status (core P/E, beban via Mach, `CPU_Speed_Limit`, peringatan termal)
+- [x] Temperature Monitoring (SMC read-only + suhu baterai; ambang bergantung beban CPU)
+- [x] Fan Monitoring (SMC read-only; RPM vs min/maks; tanpa kipas = Tidak berlaku)
+- [x] GPU Information (model, jenis, VRAM, Metal, layar)
+- [x] Serial Number opt-in (tersembunyi default, command terpisah, tidak dicatat di log)
+- [x] Activation Lock & MDM (+ keterbatasan deteksi selalu ditampilkan)
+- [x] UI: 9 kartu, alasan berwarna, sumber data, keterbatasan, pemeriksaan otomatis saat dibuka, tombol "Periksa ulang"
+- [x] Test: 102 otomatis + 2 perangkat-asli (`--ignored`), uji semua batas ambang
+- [x] Uji di MacBook Intel asli (MacBookPro16,2): data asli tampil, 0 crash
+- [x] Commit Fase 2 ke branch `feature/core-diagnostics-macos`
+- [ ] Push branch **(izin)** · merge ke `main` **(izin)**
+
+### Belum terverifikasi / belum selesai
+- [ ] **Apple Silicon**: pola sensor SMC (`Tp/Te/Tg`), data kipas (`flt`), core P/E, format `SPMemoryDataType`/`SPDisplaysDataType`, kapasitas baterai via `AppleRawMaxCapacity`, `pmset` tanpa `CPU_Speed_Limit`, pembukaan layanan `AppleSMC`. Butuh fixture asli: `sh scripts/capture-macos-fixtures.sh <nama-perangkat>`
+- [ ] Mac Intel lain (dengan GPU diskret AMD, HDD/SATA, tanpa chip T2) belum diuji
+- [ ] Keausan SSD (persentase, TBW, jam pakai): tidak tersedia tanpa admin, jadi ditampilkan sebagai keterbatasan
+- [ ] Screenshot otomatis jendela native butuh izin *Screen Recording* (diatur pemilik di System Settings)
+- [ ] Uji beban CPU: sengaja belum dibuat (sesuai keputusan pemilik)
 
 ## Fase 3 — Windows + CI
 

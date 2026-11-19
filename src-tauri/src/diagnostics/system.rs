@@ -1,31 +1,29 @@
-//! Pemeriksaan identitas sistem (satu-satunya pemeriksaan aktif di Fase 1).
+//! Pemeriksaan identitas sistem.
 
-use super::format_gib;
-use super::types::{CheckId, CheckResult, Metric, Status, SystemOverview};
-use crate::platform::Platform;
+use super::findings::Findings;
+use super::format::format_gib;
+use super::types::{CheckId, CheckResult, Metric, SystemOverview};
+use crate::platform::ProbeError;
 
-pub fn run<P: Platform>() -> CheckResult {
-    match P::system_overview() {
-        Ok(overview) => evaluate(&overview),
-        Err(err) => CheckResult {
-            id: CheckId::System,
-            status: Status::Unknown,
-            summary: format!("Informasi sistem tidak dapat dibaca: {err}"),
-            metrics: Vec::new(),
-        },
+pub fn evaluate(data: &Result<SystemOverview, ProbeError>) -> CheckResult {
+    match data {
+        Ok(overview) => assess(overview),
+        Err(err) => CheckResult::from_probe_error(CheckId::System, err),
     }
 }
 
-pub fn evaluate(o: &SystemOverview) -> CheckResult {
+pub fn assess(o: &SystemOverview) -> CheckResult {
     let unknown = || "Tidak diketahui".to_string();
-
     let os = match &o.os_version {
         Some(v) => format!("{} {v}", o.os_name),
         None => o.os_name.clone(),
     };
 
-    let mut metrics = vec![
-        Metric::new("Sistem operasi", os),
+    let mut metrics = vec![Metric::new("Sistem operasi", os)];
+    if let Some(build) = &o.os_build {
+        metrics.push(Metric::new("Build OS", build.clone()));
+    }
+    metrics.extend([
         Metric::new("Arsitektur", o.arch.clone()),
         Metric::new("Model", o.model.clone().unwrap_or_else(unknown)),
         Metric::new("Prosesor", o.cpu.clone().unwrap_or_else(unknown)),
@@ -39,32 +37,33 @@ pub fn evaluate(o: &SystemOverview) -> CheckResult {
             "Total RAM",
             o.memory_bytes.map(format_gib).unwrap_or_else(unknown),
         ),
-    ];
-    if let Some(build) = &o.os_build {
-        metrics.insert(1, Metric::new("Build OS", build.clone()));
-    }
+    ]);
 
+    let mut f = Findings::default();
     let complete = o.os_version.is_some() && o.cpu.is_some() && o.memory_bytes.is_some();
-    let (status, summary) = if complete {
-        (Status::Pass, "Informasi sistem terbaca lengkap.")
+    if complete {
+        f.ok("Versi OS, prosesor, dan RAM terbaca dari sistem.");
     } else {
-        (Status::Unknown, "Sebagian informasi sistem tidak terbaca.")
+        f.info("Sebagian informasi sistem tidak dilaporkan oleh OS.");
+    }
+    let status = f.status(complete);
+    let summary = if complete {
+        "Informasi sistem terbaca lengkap."
+    } else {
+        "Sebagian informasi sistem tidak terbaca."
     };
 
-    CheckResult {
-        id: CheckId::System,
-        status,
-        summary: summary.into(),
-        metrics,
-    }
+    CheckResult::new(CheckId::System, status, summary)
+        .with_reasons(f.into_reasons())
+        .with_metrics(metrics)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::platform::ProbeError;
+    use crate::diagnostics::types::Status;
 
-    fn full_overview() -> SystemOverview {
+    fn full() -> SystemOverview {
         SystemOverview {
             os_name: "macOS".into(),
             os_version: Some("15.0".into()),
@@ -77,53 +76,33 @@ mod tests {
         }
     }
 
-    struct OkPlatform;
-    impl Platform for OkPlatform {
-        fn system_overview() -> Result<SystemOverview, ProbeError> {
-            Ok(full_overview())
-        }
-    }
-
-    struct FailingPlatform;
-    impl Platform for FailingPlatform {
-        fn system_overview() -> Result<SystemOverview, ProbeError> {
-            Err(ProbeError::new("akses ditolak"))
-        }
+    fn metric<'a>(r: &'a CheckResult, label: &str) -> &'a str {
+        &r.metrics.iter().find(|m| m.label == label).unwrap().value
     }
 
     #[test]
-    fn complete_overview_passes() {
-        let result = run::<OkPlatform>();
-        assert_eq!(result.id, CheckId::System);
-        assert_eq!(result.status, Status::Pass);
-        let os = result
-            .metrics
-            .iter()
-            .find(|m| m.label == "Sistem operasi")
-            .unwrap();
-        assert_eq!(os.value, "macOS 15.0");
-        let ram = result
-            .metrics
-            .iter()
-            .find(|m| m.label == "Total RAM")
-            .unwrap();
-        assert_eq!(ram.value, "16 GB");
+    fn complete_overview_is_healthy() {
+        let r = assess(&full());
+        assert_eq!(r.status, Status::Healthy);
+        assert_eq!(metric(&r, "Sistem operasi"), "macOS 15.0");
+        assert_eq!(metric(&r, "Total RAM"), "16 GB");
     }
 
     #[test]
     fn partial_overview_is_unknown() {
-        let mut o = full_overview();
+        let mut o = full();
         o.memory_bytes = None;
         o.os_build = None;
-        let result = evaluate(&o);
-        assert_eq!(result.status, Status::Unknown);
-        assert!(result.metrics.iter().all(|m| m.label != "Build OS"));
+        let r = assess(&o);
+        assert_eq!(r.status, Status::Unknown);
+        assert!(r.metrics.iter().all(|m| m.label != "Build OS"));
+        assert_eq!(metric(&r, "Total RAM"), "Tidak diketahui");
     }
 
     #[test]
-    fn probe_error_is_reported_as_unknown() {
-        let result = run::<FailingPlatform>();
-        assert_eq!(result.status, Status::Unknown);
-        assert!(result.summary.contains("akses ditolak"));
+    fn probe_error_is_unknown_with_reason() {
+        let r = evaluate(&Err(ProbeError::new("akses ditolak")));
+        assert_eq!(r.status, Status::Unknown);
+        assert!(r.reasons[0].text.contains("akses ditolak"));
     }
 }

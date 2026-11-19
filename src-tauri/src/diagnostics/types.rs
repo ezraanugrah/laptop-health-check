@@ -5,6 +5,8 @@
 
 use serde::Serialize;
 
+use crate::platform::ProbeError;
+
 /// Identitas setiap pemeriksaan.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -12,25 +14,28 @@ pub enum CheckId {
     System,
     Battery,
     Storage,
-    Cpu,
     Memory,
+    Cpu,
+    Temperature,
+    Fans,
+    Gpu,
+    Ownership,
 }
 
 /// Hasil penilaian sebuah pemeriksaan.
+///
+/// Aturan: `Healthy` hanya boleh dipakai bila ADA bukti positif. Data yang
+/// tidak tersedia tidak pernah dianggap sehat — gunakan `Unknown`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
-// Warning/Fail/Unsupported mulai dipakai saat diagnostik inti dibuat (Fase 2+).
-#[allow(dead_code)]
 pub enum Status {
-    Pass,
+    Healthy,
     Warning,
-    Fail,
-    /// Data tidak dapat dibaca / tidak meyakinkan.
+    Critical,
+    /// Data tidak dapat dibaca / bukti tidak cukup.
     Unknown,
-    /// Pemeriksaan belum diimplementasikan di versi ini.
-    NotImplemented,
-    /// Pemeriksaan tidak berlaku di platform/perangkat ini (mis. desktop tanpa baterai).
-    Unsupported,
+    /// Pemeriksaan tidak berlaku di perangkat ini (mis. tanpa baterai/kipas).
+    NotApplicable,
 }
 
 impl Status {
@@ -38,11 +43,38 @@ impl Status {
     /// `None` = tidak ikut dihitung.
     pub fn severity(self) -> Option<u8> {
         match self {
-            Status::Pass => Some(0),
+            Status::Healthy => Some(0),
             Status::Unknown => Some(1),
             Status::Warning => Some(2),
-            Status::Fail => Some(3),
-            Status::NotImplemented | Status::Unsupported => None,
+            Status::Critical => Some(3),
+            Status::NotApplicable => None,
+        }
+    }
+}
+
+/// Tingkat sebuah alasan; urutan deklarasi = urutan tampil.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ReasonLevel {
+    Critical,
+    Warning,
+    Ok,
+    Info,
+}
+
+/// Alasan di balik status sebuah pemeriksaan (bukti yang ditemukan).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Reason {
+    pub level: ReasonLevel,
+    pub text: String,
+}
+
+impl Reason {
+    pub fn info(text: impl Into<String>) -> Self {
+        Self {
+            level: ReasonLevel::Info,
+            text: text.into(),
         }
     }
 }
@@ -70,17 +102,52 @@ pub struct CheckResult {
     pub id: CheckId,
     pub status: Status,
     pub summary: String,
+    /// Bukti/alasan status, terurut dari yang paling berat.
+    pub reasons: Vec<Reason>,
     pub metrics: Vec<Metric>,
+    /// Sumber data yang dipakai (mis. "ioreg AppleSmartBattery").
+    pub sources: Vec<String>,
+    /// Keterbatasan deteksi yang perlu diketahui pengguna.
+    pub notes: Vec<String>,
 }
 
 impl CheckResult {
-    pub fn not_implemented(id: CheckId) -> Self {
+    pub fn new(id: CheckId, status: Status, summary: impl Into<String>) -> Self {
         Self {
             id,
-            status: Status::NotImplemented,
-            summary: "Belum tersedia di versi ini.".into(),
+            status,
+            summary: summary.into(),
+            reasons: Vec::new(),
             metrics: Vec::new(),
+            sources: Vec::new(),
+            notes: Vec::new(),
         }
+    }
+
+    /// Data gagal dibaca: status `Unknown` beserta penyebabnya.
+    pub fn from_probe_error(id: CheckId, err: &ProbeError) -> Self {
+        Self::new(id, Status::Unknown, "Data tidak dapat dibaca.")
+            .with_reasons(vec![Reason::info(format!("Kendala: {err}"))])
+    }
+
+    pub fn with_reasons(mut self, reasons: Vec<Reason>) -> Self {
+        self.reasons = reasons;
+        self
+    }
+
+    pub fn with_metrics(mut self, metrics: Vec<Metric>) -> Self {
+        self.metrics = metrics;
+        self
+    }
+
+    pub fn with_notes(mut self, notes: Vec<String>) -> Self {
+        self.notes = notes;
+        self
+    }
+
+    pub fn with_sources(mut self, sources: &[&str]) -> Self {
+        self.sources = sources.iter().map(|s| s.to_string()).collect();
+        self
     }
 }
 
@@ -90,6 +157,8 @@ pub struct DiagnosticsReport {
     pub overall: Status,
     /// Waktu pembuatan laporan, milidetik sejak UNIX epoch.
     pub generated_at: u64,
+    /// Lama pemeriksaan dalam milidetik.
+    pub duration_ms: u64,
     pub checks: Vec<CheckResult>,
 }
 

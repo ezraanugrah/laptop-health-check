@@ -1,0 +1,10 @@
+hw.memsize: 17179869184
+hw.pagesize: 4096
+vm.swapusage: total = 2048.00M  used = 371.25M  free = 1676.75M  (encrypted)
+kern.memorystatus_vm_pressure_level: 1
+machdep.cpu.brand_string: Intel(R) Core(TM) i5-1038NG7 CPU @ 2.00GHz
+hw.physicalcpu: 4
+hw.logicalcpu: 8
+hw.perflevel0.physicalcpu: 4
+hw.perflevel1.physicalcpu: 
+hw.cpufrequency: 2000000000

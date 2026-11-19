@@ -65,7 +65,9 @@ Laptop Health Check adalah aplikasi desktop **offline** untuk memeriksa kondisi 
 | Kipas | Jumlah kipas, RPM aktual vs. minimum/maksimum | Suhu tinggi tetapi kipas 0 RPM = Bermasalah. Laptop tanpa kipas = Tidak berlaku |
 | GPU | Model, jenis (terintegrasi/diskret), VRAM, dukungan Metal/DirectX, layar terhubung | GPU tidak terdeteksi driver = Bermasalah |
 
-Status yang dipakai: **Baik**, **Perlu perhatian**, **Bermasalah**, **Tidak diketahui**, **Tidak berlaku**, dan **Segera hadir** (belum diimplementasikan).
+Status yang dipakai: **Sehat** (*Healthy*), **Peringatan** (*Warning*), **Kritis** (*Critical*), **Tidak diketahui** (*Unknown*), dan **Tidak berlaku** (*Not Applicable*). Setiap kartu menampilkan alasan status, sumber data, dan keterbatasan deteksi.
+
+Pemeriksaan tambahan *(Fase 2)*: **Activation Lock & MDM** (status kunci dan pengelolaan perangkat, disertai keterbatasan deteksi; bukan jaminan bebas penguncian atau bukti kepemilikan).
 
 **Integritas data:** setiap status harus berasal dari data nyata yang dibaca dari perangkat. Aplikasi tidak boleh menampilkan nilai contoh, simulasi, atau tebakan sebagai hasil diagnosis. Data yang tidak bisa dibaca ditampilkan sebagai **Tidak diketahui** beserta alasannya.
 

@@ -1,46 +1,71 @@
 // Helper murni (tanpa React/Tauri) agar bisa dites dengan `node --test`.
-import type { CheckId, CheckResult, Status } from "../types/diagnostics";
+import type { CheckId, CheckResult, ReasonLevel, Status } from "../types/diagnostics";
 
 export type Tone = "success" | "warning" | "danger" | "neutral" | "muted";
 
 export const STATUS_META: Record<Status, { label: string; tone: Tone }> = {
-  pass: { label: "Baik", tone: "success" },
-  warning: { label: "Perlu perhatian", tone: "warning" },
-  fail: { label: "Bermasalah", tone: "danger" },
+  healthy: { label: "Sehat", tone: "success" },
+  warning: { label: "Peringatan", tone: "warning" },
+  critical: { label: "Kritis", tone: "danger" },
   unknown: { label: "Tidak diketahui", tone: "neutral" },
-  notImplemented: { label: "Segera hadir", tone: "muted" },
-  unsupported: { label: "Tidak berlaku", tone: "muted" },
+  notApplicable: { label: "Tidak berlaku", tone: "muted" },
 };
 
-/** Urutan tampil kartu pemeriksaan. */
-export const CHECK_ORDER: CheckId[] = ["system", "battery", "storage", "cpu", "memory"];
+export const REASON_TONE: Record<ReasonLevel, Tone> = {
+  critical: "danger",
+  warning: "warning",
+  ok: "success",
+  info: "neutral",
+};
+
+/** Urutan tampil kartu pemeriksaan (sama dengan urutan backend). */
+export const CHECK_ORDER: CheckId[] = [
+  "system",
+  "battery",
+  "storage",
+  "memory",
+  "cpu",
+  "temperature",
+  "fans",
+  "gpu",
+  "ownership",
+];
 
 export const CHECK_TITLES: Record<CheckId, string> = {
   system: "Sistem",
   battery: "Baterai",
-  storage: "Penyimpanan",
-  cpu: "CPU & Suhu",
-  memory: "Memori",
+  storage: "SSD/HDD",
+  memory: "RAM & Memori",
+  cpu: "CPU & Status Termal",
+  temperature: "Temperatur",
+  fans: "Kipas",
+  gpu: "GPU",
+  ownership: "Activation Lock & MDM",
 };
 
 export function countByStatus(checks: CheckResult[]): Record<Status, number> {
   const counts: Record<Status, number> = {
-    pass: 0,
+    healthy: 0,
     warning: 0,
-    fail: 0,
+    critical: 0,
     unknown: 0,
-    notImplemented: 0,
-    unsupported: 0,
+    notApplicable: 0,
   };
   for (const check of checks) counts[check.status] += 1;
   return counts;
 }
 
-/** Byte -> GB basis 1024, konsisten dengan `format_gib` di Rust. */
-export function formatBytes(bytes: number | null | undefined): string {
-  if (bytes == null || !Number.isFinite(bytes) || bytes <= 0) return "Tidak diketahui";
-  const gib = bytes / 1024 ** 3;
-  return Math.abs(gib - Math.round(gib)) < 0.05 ? `${Math.round(gib)} GB` : `${gib.toFixed(1)} GB`;
+/** Ringkasan jumlah per status, hanya yang bernilai > 0. Contoh: "6 sehat · 2 peringatan". */
+export function summarizeCounts(counts: Record<Status, number>): string {
+  const order: Status[] = ["critical", "warning", "unknown", "healthy", "notApplicable"];
+  return order
+    .filter((s) => counts[s] > 0)
+    .map((s) => `${counts[s]} ${STATUS_META[s].label.toLowerCase()}`)
+    .join(" · ");
+}
+
+export function formatDuration(ms: number): string {
+  return ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(1)} dtk`;
 }
 
 export function formatTimestamp(ms: number, locale = "id-ID"): string {

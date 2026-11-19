@@ -1,0 +1,65 @@
+{
+  "SPDisplaysDataType" : [
+    {
+      "_name" : "kHW_IntelIrisPlusGraphicsItem",
+      "_spdisplays_vram" : "1536 MB",
+      "spdisplays_device-id" : "0x8a53",
+      "spdisplays_mtlgpufamilysupport" : "spdisplays_metal3",
+      "spdisplays_ndrvs" : [
+        {
+          "_IODisplayEDID" : "REDACTED",
+          "_name" : "Color LCD",
+          "_spdisplays_display-product-id" : "a03d",
+          "_spdisplays_display-serial-number2" : "REDACTED",
+          "_spdisplays_display-vendor-id" : "610",
+          "_spdisplays_display-week" : "16",
+          "_spdisplays_display-year" : "2017",
+          "_spdisplays_displayID" : "4280f40",
+          "_spdisplays_displayPath" : "IOService:/AppleACPIPlatformExpert/PCI0@0/AppleACPIPCI/IGPU@2/AppleIntelFramebuffer@0/AppleMCCSControlModule",
+          "_spdisplays_displayport_device" : {
+            "_name" : "spdisplays_displayport_info",
+            "spdisplays_displayport_current_bandwidth" : " 3.24 Gbps",
+            "spdisplays_displayport_current_lanes" : "4",
+            "spdisplays_displayport_current_spread" : "0.0%",
+            "spdisplays_displayport_DPCD_version" : "1.1",
+            "spdisplays_displayport_errors_lane0" : "32767",
+            "spdisplays_displayport_errors_lane1" : "32767",
+            "spdisplays_displayport_errors_lane2" : "32767",
+            "spdisplays_displayport_errors_lane3" : "32767",
+            "spdisplays_displayport_hdcp_capability" : "spdisplays_displayport_hdcp_incapable",
+            "spdisplays_displayport_max_bandwidth" : "2.70 Gbps",
+            "spdisplays_displayport_max_lanes" : "4",
+            "spdisplays_displayport_max_spread" : "0.5%",
+            "spdisplays_displayport_sink_ascii_name" : "eD?gda",
+            "spdisplays_displayport_sink_chip_version" : " 0.01",
+            "spdisplays_displayport_sink_count" : "1",
+            "spdisplays_displayport_sink_sw_version" : " 6",
+            "spdisplays_displayport_sink_vendor" : "00 10 fa",
+            "spdisplays_displayport_valid_error_lane0" : "1",
+            "spdisplays_displayport_valid_error_lane1" : "1",
+            "spdisplays_displayport_valid_error_lane2" : "1",
+            "spdisplays_displayport_valid_error_lane3" : "1"
+          },
+          "_spdisplays_displayRegID" : "7263",
+          "_spdisplays_edid" : "REDACTED",
+          "_spdisplays_pixels" : "2880 x 1800",
+          "_spdisplays_resolution" : "1440 x 900",
+          "spdisplays_ambient_brightness" : "spdisplays_yes",
+          "spdisplays_connection_type" : "spdisplays_internal",
+          "spdisplays_depth" : "CGSThirtyBitColor",
+          "spdisplays_display_type" : "spdisplays_built-in_retinaLCD",
+          "spdisplays_main" : "spdisplays_yes",
+          "spdisplays_mirror" : "spdisplays_off",
+          "spdisplays_online" : "spdisplays_yes",
+          "spdisplays_pixelresolution" : "spdisplays_2560x1600Retina"
+        }
+      ],
+      "spdisplays_revision-id" : "0x0007",
+      "spdisplays_vendor" : "Intel",
+      "spdisplays_vram_shared" : "1536 MB",
+      "sppci_bus" : "spdisplays_builtin",
+      "sppci_device_type" : "spdisplays_gpu",
+      "sppci_model" : "Intel Iris Plus Graphics"
+    }
+  ]
+}
