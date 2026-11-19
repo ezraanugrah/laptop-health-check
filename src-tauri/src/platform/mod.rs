@@ -14,8 +14,8 @@
 use std::fmt;
 
 use crate::diagnostics::raw::{
-    BatteryInfo, CpuInfo, DiskInfo, GpuInfo, MemoryInfo, OwnershipInfo, SensorReadings,
-    SystemOverview,
+    AudioDevice, BatteryInfo, BluetoothInfo, CpuInfo, DiskInfo, GpuInfo, MemoryInfo, NetworkRoute,
+    OwnershipInfo, PortsInfo, SensorReadings, SystemOverview, TouchBarEvidence, WifiStatus,
 };
 use crate::diagnostics::types::{CheckId, PlatformSupport};
 
@@ -43,6 +43,20 @@ pub trait Platform {
     fn notes(check: CheckId) -> &'static [Note];
     /// Tingkat verifikasi platform di hardware asli.
     fn support() -> PlatformSupport;
+
+    // --- Periferal untuk Tes Interaktif (read-only, tanpa pemindaian) ------
+    // Data identitas (SSID/BSSID, alamat MAC/BD, nomor seri, UID, nama
+    // perangkat Bluetooth/USB) dibuang SEBELUM keluar dari probe.
+
+    /// Status Wi-Fi tanpa pemindaian. `Ok(None)` = tidak ada antarmuka Wi-Fi.
+    fn wifi() -> Result<Option<WifiStatus>, ProbeError>;
+    /// Rute jaringan menurut macOS, tanpa mengirim lalu lintas (bukan uji internet).
+    fn network_route() -> Result<NetworkRoute, ProbeError>;
+    fn bluetooth() -> Result<BluetoothInfo, ProbeError>;
+    /// Bus/receptacle Thunderbolt dan pengontrol/perangkat USB.
+    fn ports() -> Result<PortsInfo, ProbeError>;
+    fn audio_devices() -> Result<Vec<AudioDevice>, ProbeError>;
+    fn touch_bar() -> Result<TouchBarEvidence, ProbeError>;
 }
 
 /// Kesalahan saat membaca data dari OS.

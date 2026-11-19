@@ -1,6 +1,10 @@
 //! SSD/HDD: `diskutil` (SMART, jenis, kapasitas, ruang kosong) +
 //! `system_profiler SPNVMeDataType/SPSerialATADataType` (TRIM, model).
 //! Plist `diskutil` dikonversi ke JSON dengan `plutil` bawaan macOS.
+//!
+//! Hanya disk fisik INTERNAL yang diperiksa. Disk eksternal (mis. flashdisk
+//! pemeriksa) tidak disentuh: membaca volume removable memicu dialog izin macOS
+//! "akses file di volume removable" dan bukan bagian dari kesehatan Mac ini.
 
 use serde_json::Value;
 
@@ -11,7 +15,7 @@ use crate::diagnostics::raw::{DiskInfo, VolumeSpace};
 use crate::platform::ProbeError;
 
 pub fn probe() -> Result<Vec<DiskInfo>, ProbeError> {
-    let list = plist_to_json(&run(DISKUTIL, &["list", "-plist", "physical"])?)?;
+    let list = plist_to_json(&run(DISKUTIL, &["list", "-plist", "internal", "physical"])?)?;
     let root = run(DISKUTIL, &["info", "-plist", "/"])
         .and_then(|t| plist_to_json(&t))
         .ok();

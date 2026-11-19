@@ -123,8 +123,8 @@ Setiap hasil diberi label **terukur** (bukti dari data perangkat) atau **dikonfi
 | Read-only | Aplikasi tidak mengubah pengaturan hardware atau sistem: kipas, daya, kecerahan, volume, Wi-Fi/Bluetooth, maupun konfigurasi lain. Pembacaan SMC hanya memakai perintah baca. |
 | Performa | Pemeriksaan otomatis selesai < 30 detik (saat ini ±1,2 detik di Mac Intel). UI tidak membeku karena pembacaan hardware dijalankan di thread terpisah. |
 | Ukuran | Aplikasi sekecil mungkin. Dependency baru harus punya alasan yang jelas dan disetujui pemilik. |
-| Bahasa | Antarmuka dan hasil pemeriksaan dalam **Bahasa Indonesia (default)** dan **English**, dapat diganti seketika di Pengaturan. Nama hardware dan kode teknis tidak diterjemahkan. Tanpa layanan penerjemah online. |
-| Aksesibilitas | Kontras cukup, tema Terang/Gelap (default Gelap) yang dipilih di Pengaturan, navigasi keyboard. Preferensi disimpan lokal. |
+| Bahasa | Antarmuka dan hasil pemeriksaan dalam **Bahasa Indonesia (default)** dan **English**, dapat diganti seketika dari header (kanan atas). Nama hardware dan kode teknis tidak diterjemahkan. Tanpa layanan penerjemah online. |
+| Aksesibilitas | Kontras cukup, tema Terang/Gelap (default Gelap) yang dipilih dari header (kanan atas), navigasi keyboard. Preferensi disimpan lokal. |
 
 ## 8. Kriteria keberhasilan 1.0
 

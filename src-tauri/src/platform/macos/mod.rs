@@ -7,8 +7,8 @@
 
 use super::{Note, Platform, ProbeError};
 use crate::diagnostics::raw::{
-    BatteryInfo, CpuInfo, DiskInfo, GpuInfo, MemoryInfo, OwnershipInfo, SensorReadings,
-    SystemOverview,
+    AudioDevice, BatteryInfo, BluetoothInfo, CpuInfo, DiskInfo, GpuInfo, MemoryInfo, NetworkRoute,
+    OwnershipInfo, PortsInfo, SensorReadings, SystemOverview, TouchBarEvidence, WifiStatus,
 };
 use crate::diagnostics::types::{CheckId, PlatformSupport, SupportLevel};
 use crate::tr;
@@ -25,17 +25,22 @@ macro_rules! fixture {
     };
 }
 
+mod audio;
 mod battery;
+mod bluetooth;
 mod command;
 mod cpu;
 mod gpu;
 mod memory;
 mod ownership;
 mod parse;
+mod ports;
 mod sensors;
 mod smc;
 mod storage;
 mod system;
+mod touchbar;
+mod wifi;
 
 /// Path absolut utilitas sistem (aman dari pembajakan `PATH`).
 mod bin {
@@ -48,6 +53,8 @@ mod bin {
     pub const VM_STAT: &str = "/usr/bin/vm_stat";
     pub const PMSET: &str = "/usr/bin/pmset";
     pub const PROFILES: &str = "/usr/bin/profiles";
+    pub const SCUTIL: &str = "/usr/sbin/scutil";
+    pub const PGREP: &str = "/usr/bin/pgrep";
 }
 
 pub struct MacOs;
@@ -79,6 +86,24 @@ impl Platform for MacOs {
     }
     fn serial_number() -> Result<Option<String>, ProbeError> {
         system::serial_number()
+    }
+    fn wifi() -> Result<Option<WifiStatus>, ProbeError> {
+        wifi::probe()
+    }
+    fn network_route() -> Result<NetworkRoute, ProbeError> {
+        wifi::probe_route()
+    }
+    fn bluetooth() -> Result<BluetoothInfo, ProbeError> {
+        bluetooth::probe()
+    }
+    fn ports() -> Result<PortsInfo, ProbeError> {
+        ports::probe()
+    }
+    fn audio_devices() -> Result<Vec<AudioDevice>, ProbeError> {
+        audio::probe()
+    }
+    fn touch_bar() -> Result<TouchBarEvidence, ProbeError> {
+        touchbar::probe()
     }
     fn sources(check: CheckId) -> &'static [&'static str] {
         match check {

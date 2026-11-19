@@ -50,7 +50,7 @@ Aturan: hanya data nyata; data yang tidak tersedia menjadi "Tidak diketahui"/"Ti
 - Milestone 3.0 di-merge lewat PR #2 (`851586b`). Job CI `windows` gagal di PR tersebut (run `44461751812` dan `44461836379`, clippy `dead_code` untuk varian yang tidak dibuat di build Windows). Job macOS lolos. Masalah ini tidak diperbaiki karena kode Windows dikeluarkan.
 - Modul Windows 3.1–3.9 tidak dikerjakan. Rencana lama: [`docs/archive/windows/FASE3-WINDOWS-PRD.md`](docs/archive/windows/FASE3-WINDOWS-PRD.md). Kodenya tetap ada di riwayat Git (`538ddd3`).
 
-## Fase 3 — Interactive Hardware Testing (berjalan, working tree `feature/macos-only`, belum di-commit)
+## Fase 3 — Interactive Hardware Testing (branch `feature/complete-hardware-tests`, belum di-commit)
 
 Rencana dan hasil: [`docs/FASE3-INTERACTIVE-TESTING-PRD.md`](docs/FASE3-INTERACTIVE-TESTING-PRD.md) (hasil Milestone 3.0 di §15).
 
@@ -84,12 +84,14 @@ Rencana dan hasil: [`docs/FASE3-INTERACTIVE-TESTING-PRD.md`](docs/FASE3-INTERACT
   - deteksi ketikan ganda (eksperimental);
   - tahan Esc untuk keluar.
 - [ ] 3.2/3.3a L3 di jendela native: diuji di browser pane (Chromium) dengan event otomasi. Belum diuji tangan di WKWebView native: tombol fn/Caps Lock/F-keys asli dan *fullscreen* native. Butuh pemilik karena proses ini tidak punya izin Screen Recording atau kontrol desktop.
-- [ ] 3.3b Touch Bar (bisa diuji L3 di MacBookPro16,2)
-- [ ] 3.4 Trackpad
-- [ ] 3.5 Speaker dan mikrofon (wajib lewat jendela media terpisah)
-- [ ] 3.6 Webcam (wajib lewat jendela media terpisah)
-- [ ] 3.7 Wi-Fi dan Bluetooth (tanpa koneksi)
-- [ ] 3.8 USB/Thunderbolt, pengisian daya, jack audio, layar eksternal, kartu SD
+- [x] 3.3b Touch Bar: deteksi hardware (IORegistry "Touch Bar Display/Backlight" + TouchBarServer, bukan nama model), 8 tombol uji NSTouchBar (`touchbar.rs`, dipasang di NSWindow + WKWebView, dilepas saat selesai/batal + pengaman 600 dtk), F1–F12 lewat `code`, konfirmasi tampilan. **Belum diuji di Touch Bar fisik** (sesi native 19 Nov tidak menjalankannya).
+- [x] 3.4 Trackpad: kisi gerak 6×4, klik primer/sekunder/ganda, gulir V/H, seret-lepas, cubit (GestureEvent/ctrl+wheel), Force Click opsional; gestur 3/4 jari & rasa klik = dikonfirmasi pengguna. ✅ Uji native pemilik 19 Nov 2026 (WKWebView, build produksi Intel): Lulus — 24/24 sel, 7/7 fungsi wajib, cubit (event gesture WebKit) dan Force Click (webkitmouseforce) terukur; gestur 3/4 jari & rasa klik dikonfirmasi pengguna.
+- [x] 3.5a Speaker: Web Audio kiri/kanan/stereo, gain 0,08 (maks 0,1), hanya setelah klik; peringatan bila output default bukan speaker bawaan. **Belum diuji dengar.**
+- [x] 3.5b Mikrofon: jendela media terpisah + persetujuan, meter level (eksperimental), rekaman ≤5 dtk hanya di memori, diputar setelah mikrofon mati. **Uji nyata menunggu persetujuan pemilik.**
+- [x] 3.6 Kamera: jendela media terpisah + persetujuan, pratinjau ≤10 dtk, jumlah frame terukur, konfirmasi gambar & lampu. ✅ Dijalankan pemilik 19 Nov 2026: Lulus — 640×480 30 fps, 124 frame; log macOS: 1 dialog izin (diizinkan), tepat 1 stream kamera (±5 dtk) lalu berhenti, gerbang tertutup, 0 file media, 0 proses tersisa.
+- [x] 3.7 Wi-Fi (CoreWLAN tanpa scan/SSID; rute `scutil --nwi`) dan Bluetooth (`system_profiler`, tanpa nama/alamat). Uji internet aktif: menunggu keputusan pemilik (aturan offline).
+- [x] 3.8 USB/Thunderbolt: bus/receptacle/pengontrol, tes colok manual (potret sebelum/sesudah); port kosong ≠ rusak. **Belum diuji dengan perangkat dicolok.**
+- [ ] 3.8b Pengisian daya, jack audio, layar eksternal, kartu SD (belum)
 - [ ] 3.9 Validasi L3 di Mac Intel asli + daftar periksa `docs/FASE3-L3-CHECKLIST.md`
 - [ ] Persetujuan sisa keputusan D1–D9 (PRD Fase 3 §12); D6 (pengaman ⌘Q) tidak mungkin dibuat dan diganti peringatan
 
@@ -106,11 +108,16 @@ Rencana dan hasil: [`docs/FASE3-INTERACTIVE-TESTING-PRD.md`](docs/FASE3-INTERACT
 - [x] P3 Pertanyaan lampu latar dengan petunjuk cek pengaturan dan 4 jawaban (rusak hanya bila tetap mati setelah dicek)
 - [x] P4 Penanda "N catatan" di kartu Lulus, tanpa status baru
 - [x] P5 Jendela utama *incognito*: tidak ada jejak WebKit di disk (terverifikasi native)
-- [ ] Uji native ulang P1 (Esc di layar penuh) oleh pemilik
+- [x] Uji native ulang oleh pemilik (19 Nov 2026, build produksi `105d168`, 5 sesi):
+  - P1: Esc dan tombol Keluar membatalkan Tes Layar 4× ("Dibatalkan" setelah 2 atau 4 dari 7 pola), layar penuh kembali normal, log "fokus ok";
+  - Tes Layar 7/7 pola Lulus (dikonfirmasi pengguna); Tes Keyboard 64/64 Lulus, fn tercatat "tidak terbaca" (P2);
+  - Tes 0 (`media-dryrun`): berhenti oleh tombol setelah 2,03 dtk, gerbang ditolak dari jendela utama & jendela latihan, 0 pelanggaran;
+  - P5: tidak ada tulisan baru di `~/Library/WebKit|Caches/com.ezraanugrah.laptophealthcheck`;
+  - 0 dialog TCC, 0 akses kamera/mikrofon, 0 stream, 0 proses tersisa, 0 crash.
 
 ## Fase 4 — Reports & UI/UX
 
-### Tampilan & bahasa ✅ (working tree `feature/macos-only`, belum di-commit)
+### Tampilan & bahasa ✅ (di `main` lewat PR #3)
 - [x] Tema Terang/Gelap: kelas `dark`, default Gelap, perubahan instan, kontras teks diperbaiki (`slate-400` → `slate-500/600` di latar terang)
 - [x] Preferensi lokal `settings.json` (Rust `settings.rs`, 5 test), dengan fallback per field
 - [x] i18n terpusat id-ID/en-US (`src/i18n`):
@@ -118,16 +125,27 @@ Rencana dan hasil: [`docs/FASE3-INTERACTIVE-TESTING-PRD.md`](docs/FASE3-INTERACT
   - fallback dan kunci bertingkat;
   - format tanggal dan durasi per bahasa.
 - [x] Backend berkode (`text.rs`, `tr!`) untuk semua 9 pemeriksaan, catatan keterbatasan, dan catatan dukungan. Logika tidak berubah: teks laporan Mac asli identik 75/75.
-- [x] Halaman Pengaturan (Tampilan, Bahasa, status tersimpan)
+- [x] ~~Halaman Pengaturan~~ → diganti header global (lihat di bawah)
 - [x] Test: 17 test i18n/pengaturan baru (frontend total 64), 140 test Rust
 - [x] Uji browser 900×600 kedua bahasa: tanpa teks terpotong, tanpa kunci hilang
 - [x] Uji native: default, baca file setelah restart, file rusak → default, tanpa akses kamera/mikrofon, isolasi media lulus
-- [ ] Uji tangan pemilik: ganti tema dan bahasa di app native, tutup, lalu buka lagi
+- [x] Uji tangan pemilik (19 Nov 2026): simpan lewat UI (Terang/Gelap, English/Indonesia) tercatat di log; setelah restart app membaca English lalu Gelap + Indonesia dari `settings.json`
 
-### Laporan
-- [ ] Ekspor JSON (`DiagnosticsReport` + hasil interaktif + metadata versi aplikasi)
-- [ ] Ekspor PDF lokal (putuskan: crate PDF Rust vs. cetak WebView ke PDF)
-- [ ] Opsi "sertakan nomor seri" saat ekspor (default: tidak)
+### Header global: tema & bahasa (working tree, belum di-commit)
+- [x] Header di area konten (`src/components/header/`): judul halaman aktif di kiri, dropdown bahasa (🇮🇩 ID / 🇬🇧 EN) dan tombol tema (ikon matahari/bulan + label) di kanan; di luar area gulir sehingga selalu terlihat; `z-30` di bawah overlay tes (`z-40`/`z-50`)
+- [x] Dropdown aksesibel (pola menu WAI-ARIA): Enter/Spasi/↓/↑ membuka, ↑/↓/Home/End, Esc menutup & mengembalikan fokus, klik di luar menutup, `menuitemradio` + `aria-checked`, `lang` per nama bahasa
+- [x] Memakai `PreferencesProvider` & i18n yang ada (kunci `prefs.*`); galat simpan tampil ringkas di header
+- [x] Halaman & menu Pengaturan dihapus (disetujui pemilik); judul `h1` halaman pindah ke header; `settings.json` tidak berubah
+- [x] Test: helper menu bahasa/tema & navigasi menu (frontend total 67)
+- [x] Uji browser 900×600: default Gelap+ID, ganti bahasa/tema instan, tersimpan setelah *reload*, semua halaman konsisten, menu tidak terpotong, overlay Tes Layar/Keyboard menutupi header, Spasi/Enter di Tes Keyboard tidak memicu tombol header
+- [ ] Uji native: header saat pertama dibuka, ganti tema/bahasa, restart **(izin build)**
+
+### Laporan ✅ (branch `feature/complete-hardware-tests`, belum di-commit)
+- [x] Halaman Laporan: ringkasan perangkat, 9 pemeriksaan, 10 tes interaktif (belum diuji/belum tersedia tidak pernah Lulus), catatan; dua bahasa
+- [x] Ekspor JSON (`schemaVersion` 1) ke lokasi pilihan pengguna lewat NSSavePanel (`report_export.rs`: validasi JSON, nama file aman, tulis atomik, hanya jendela utama)
+- [x] Ekspor PDF lewat dialog cetak macOS (Simpan sebagai PDF); versi cetak hitam-putih terpisah (`PrintableReport`)
+- [x] Opsi "sertakan nomor seri" (default: tidak; dibaca hanya saat dicentang)
+- [ ] Uji native ekspor JSON & PDF (butuh klik pemilik di dialog)
 - [ ] Riwayat pemeriksaan lokal
 - [ ] Ringkasan kesehatan gabungan (otomatis + interaktif)
 

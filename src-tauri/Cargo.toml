@@ -24,6 +24,13 @@ tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
+# API native macOS (read-only / UI): CoreWLAN (status Wi-Fi), NSTouchBar (tes Touch Bar),
+# NSSavePanel (pengguna memilih lokasi ekspor laporan). Fitur minimal, tanpa default.
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSString", "NSArray", "NSSet", "NSURL", "NSObject", "NSValue"] }
+objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSResponder", "NSView", "NSWindow", "NSControl", "NSButton", "NSColor", "NSTouchBar", "NSTouchBarItem", "NSCustomTouchBarItem", "NSSavePanel", "NSPanel", "NSApplication"] }
+
 
 # Hemat disk & waktu build saat pengembangan: dependency dan build script
 # dikompilasi tanpa debuginfo (crate aplikasi tetap punya debuginfo penuh).

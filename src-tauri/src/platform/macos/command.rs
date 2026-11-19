@@ -1,7 +1,7 @@
 //! Menjalankan utilitas sistem dengan batas waktu, tanpa shell.
 
 use std::io::{Read, Write};
-use std::process::{Command, Stdio};
+use std::process::{Command, ExitStatus, Stdio};
 use std::time::{Duration, Instant};
 
 use serde_json::Value;
@@ -55,6 +55,30 @@ pub fn run_with_input(
     input: Option<&[u8]>,
     timeout: Duration,
 ) -> Result<String, ProbeError> {
+    let (status, bytes) = spawn_and_wait(program, args, input, timeout)?;
+    if !status.success() {
+        return Err(ProbeError::new(format!(
+            "{program} {} gagal ({status})",
+            args.join(" ")
+        )));
+    }
+    Ok(String::from_utf8_lossy(&bytes).into_owned())
+}
+
+/// Seperti [`run`], tetapi kode keluar bukan nol TIDAK dianggap error
+/// (mis. `pgrep` mengembalikan 1 bila tidak ada proses yang cocok).
+/// `None` = proses dihentikan sinyal.
+pub fn run_exit_code(program: &str, args: &[&str]) -> Result<(Option<i32>, String), ProbeError> {
+    let (status, bytes) = spawn_and_wait(program, args, None, DEFAULT_TIMEOUT)?;
+    Ok((status.code(), String::from_utf8_lossy(&bytes).into_owned()))
+}
+
+fn spawn_and_wait(
+    program: &str,
+    args: &[&str],
+    input: Option<&[u8]>,
+    timeout: Duration,
+) -> Result<(ExitStatus, Vec<u8>), ProbeError> {
     let label = || format!("{program} {}", args.join(" "));
 
     let mut child = Command::new(program)
@@ -108,11 +132,7 @@ pub fn run_with_input(
         .join()
         .map_err(|_| ProbeError::new(format!("{}: gagal membaca output", label())))?
         .map_err(|e| ProbeError::new(format!("{}: {e}", label())))?;
-
-    if !status.success() {
-        return Err(ProbeError::new(format!("{} gagal ({status})", label())));
-    }
-    Ok(String::from_utf8_lossy(&bytes).into_owned())
+    Ok((status, bytes))
 }
 
 #[cfg(test)]
@@ -127,6 +147,13 @@ mod tests {
     #[test]
     fn non_zero_exit_is_an_error() {
         assert!(run("/usr/bin/false", &[]).is_err());
+    }
+
+    #[test]
+    fn exit_code_variant_reports_non_zero_without_error() {
+        assert_eq!(run_exit_code("/usr/bin/false", &[]).unwrap().0, Some(1));
+        assert_eq!(run_exit_code("/usr/bin/true", &[]).unwrap().0, Some(0));
+        assert!(run_exit_code("/usr/bin/tidak-ada-program-ini", &[]).is_err());
     }
 
     #[test]

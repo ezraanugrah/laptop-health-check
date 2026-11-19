@@ -1,0 +1,103 @@
+LAPTOP HEALTH CHECK — PORTABLE BETA
+=====================================
+(English version below)
+
+Aplikasi untuk memeriksa kondisi hardware MacBook/Mac secara OFFLINE.
+Versi, arsitektur, dan checksum ada di file VERSI.txt.
+
+STATUS BETA — BACA DULU
+- Didukung: Mac Intel (x86_64). Diuji di MacBook Pro 16,2 (Intel), macOS 26.
+- Mac Apple Silicon (M1/M2/M3/...): JANGAN dipakai dengan beta Intel ini. Lewat Rosetta
+  aplikasi mungkin terbuka, tetapi pembacaan sensor dan hasilnya tidak valid.
+  Lihat VERSI.txt: hanya arsitektur yang tertulis di sana yang didukung.
+- Mac/versi macOS lain BELUM DIUJI. Hasil di perangkat lain belum terverifikasi.
+- Hasil pemeriksaan adalah indikasi, bukan pengganti Apple Diagnostics atau
+  pemeriksaan teknisi resmi.
+
+YANG TERSEDIA DI BETA INI
+- Ringkasan otomatis (data asli perangkat): Sistem, Baterai, SSD/HDD, RAM & Memori,
+  CPU & Status Termal, Temperatur, Kipas, GPU, Activation Lock & MDM.
+  Data yang tidak terbaca ditampilkan "Tidak diketahui", tidak pernah "Sehat".
+- Tes Interaktif: Tes Layar (pola warna layar penuh) dan Tes Keyboard.
+- Tampilan Terang/Gelap dan Bahasa Indonesia/English (kanan atas).
+- Nomor seri disembunyikan; hanya tampil bila Anda menekan "Tampilkan".
+
+BELUM TERSEDIA (ditandai "Belum tersedia" di aplikasi)
+- Tes Trackpad, Touch Bar, Speaker, Mikrofon, Kamera, Wi-Fi & Bluetooth, Port USB/Thunderbolt.
+- Laporan PDF/JSON (hasil hanya tampil di layar; ambil screenshot bila perlu).
+
+CARA MENJALANKAN DARI FLASHDISK (tanpa instalasi)
+1. Colokkan flashdisk ke Mac yang akan diperiksa.
+2. Buka folder ini, klik dua kali file .dmg. Jendela "Laptop Health Check" muncul.
+3. Di jendela itu, klik dua kali "Laptop Health Check".
+   Aplikasi berjalan langsung dari DMG; tidak ada yang dipasang ke Mac tersebut.
+   Tidak perlu menyeret ke folder Applications.
+4. Selesai: tutup aplikasi (⌘Q), lalu Eject DMG ("Laptop Health Check") dan flashdisk.
+Selalu jalankan lewat .dmg. Flashdisk FAT32/exFAT tidak menyimpan seluruh metadata
+macOS, jadi .app jangan disalin/dijalankan langsung dari flashdisk.
+
+IZIN
+Aplikasi ini tidak membutuhkan izin apa pun (kamera, mikrofon, file, Accessibility,
+admin). Jika macOS tetap menampilkan dialog izin, pilih "Jangan Izinkan"/"Don't Allow";
+pemeriksaan tetap berjalan.
+
+JIKA macOS MENOLAK MEMBUKA APLIKASI
+Aplikasi ini belum ditandatangani Developer ID dan belum dinotarisasi Apple.
+File yang disalin dari flashdisk biasanya bisa dibuka langsung. Jika muncul pesan
+"tidak dapat dibuka" / "pengembang tidak dapat diverifikasi":
+- macOS 14 atau lebih lama: Control-klik aplikasi → Buka → Buka.
+- macOS 15 atau lebih baru: coba buka sekali, lalu System Settings → Privacy & Security
+  → bagian Security → "Open Anyway", lalu konfirmasi.
+JANGAN mematikan Gatekeeper atau SIP, dan jangan memakai perintah Terminal untuk
+melewati perlindungan macOS. Bila pemilik Mac tidak mengizinkan, jangan dipaksakan.
+
+PRIVASI & KEAMANAN
+- 100% offline: tidak ada koneksi internet, akun, atau telemetri. Tidak ada data yang dikirim.
+- Tidak butuh password administrator.
+- Hanya MEMBACA data hardware; tidak mengubah kipas, daya, atau pengaturan sistem.
+- Kamera dan mikrofon tidak dipakai di beta ini.
+- Tidak menulis apa pun ke flashdisk, dan tidak membaca isi flashdisk/disk eksternal
+  (pemeriksaan SSD hanya untuk disk internal Mac tersebut).
+- Jejak di Mac yang diperiksa: hanya bila Anda mengganti tema/bahasa, dibuat file
+  ~/Library/Application Support/com.ezraanugrah.laptophealthcheck/settings.json
+  (isi: tema dan bahasa saja). Boleh dihapus setelah selesai.
+  macOS sendiri bisa mencatat bahwa aplikasi pernah dibuka (perilaku standar sistem).
+- Tes Keyboard hanya mencatat posisi tombol, tidak pernah teks yang diketik.
+
+KETERBATASAN YANG DIKETAHUI
+- Diagnostik Apple Silicon masih "Pratinjau" (belum diverifikasi di perangkat asli).
+- Sensor suhu/kipas dibaca read-only dari SMC; bila gagal hasilnya "Tidak diketahui".
+- Tampilan modern butuh WebKit/Safari yang cukup baru; di macOS lama tampilan bisa
+  tidak sempurna (belum diuji).
+
+=====================================================================
+LAPTOP HEALTH CHECK — PORTABLE BETA (English)
+
+An OFFLINE hardware health checker for Mac. See VERSI.txt for version,
+architecture and checksums.
+
+BETA STATUS
+- Supported: Intel Macs (x86_64). Tested on MacBook Pro 16,2 (Intel), macOS 26.
+- Apple Silicon: do NOT use this Intel beta (under Rosetta sensor readings are not valid).
+- Other Macs/macOS versions are NOT tested yet.
+- Results are indicative, not a replacement for Apple Diagnostics or an authorized technician.
+
+AVAILABLE: automatic summary (System, Battery, SSD/HDD, RAM, CPU & thermal, Temperature,
+Fans, GPU, Activation Lock & MDM), Display test, Keyboard test, Light/Dark theme,
+Indonesian/English. Serial number hidden unless you press "Show".
+NOT YET AVAILABLE: Trackpad, Touch Bar, Speakers, Microphone, Camera, Wi-Fi & Bluetooth,
+USB/Thunderbolt port tests, PDF/JSON reports.
+
+RUN FROM A USB DRIVE: double-click the .dmg, then double-click "Laptop Health Check"
+in the window that opens. Nothing is installed. Quit with ⌘Q, then eject. Always run it
+from the .dmg; do not copy/run the .app directly on a FAT32/exFAT drive.
+PERMISSIONS: none needed. If macOS asks anyway, choose "Don't Allow".
+
+IF macOS REFUSES TO OPEN IT: the app is not Developer ID-signed or notarized.
+macOS 14 or older: Control-click → Open. macOS 15+: try once, then System Settings →
+Privacy & Security → "Open Anyway". Never disable Gatekeeper or SIP.
+
+PRIVACY: fully offline, no data sent, no admin password, read-only hardware access,
+camera/microphone unused, nothing written to or read from the USB drive (storage check
+covers internal disks only). The only file written on
+the inspected Mac is settings.json (theme/language) if you change them.

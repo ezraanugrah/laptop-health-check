@@ -4,8 +4,8 @@
 
 use super::{Platform, ProbeError};
 use crate::diagnostics::raw::{
-    BatteryInfo, CpuInfo, DiskInfo, GpuInfo, MemoryInfo, OwnershipInfo, SensorReadings,
-    SystemOverview,
+    AudioDevice, BatteryInfo, BluetoothInfo, CpuInfo, DiskInfo, GpuInfo, MemoryInfo, NetworkRoute,
+    OwnershipInfo, PortsInfo, SensorReadings, SystemOverview, TouchBarEvidence, WifiStatus,
 };
 use crate::diagnostics::types::{CheckId, PlatformSupport, SupportLevel};
 
@@ -44,6 +44,24 @@ impl Platform for Unsupported {
         unsupported()
     }
     fn serial_number() -> Result<Option<String>, ProbeError> {
+        unsupported()
+    }
+    fn wifi() -> Result<Option<WifiStatus>, ProbeError> {
+        unsupported()
+    }
+    fn network_route() -> Result<NetworkRoute, ProbeError> {
+        unsupported()
+    }
+    fn bluetooth() -> Result<BluetoothInfo, ProbeError> {
+        unsupported()
+    }
+    fn ports() -> Result<PortsInfo, ProbeError> {
+        unsupported()
+    }
+    fn audio_devices() -> Result<Vec<AudioDevice>, ProbeError> {
+        unsupported()
+    }
+    fn touch_bar() -> Result<TouchBarEvidence, ProbeError> {
         unsupported()
     }
     fn sources(_check: CheckId) -> &'static [&'static str] {

@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { BACKEND_MESSAGES } from "./backend.ts";
-import { UI_MESSAGES } from "./ui.ts";
+import { BASE_MESSAGES, MODULE_MESSAGES, UI_MESSAGES } from "./ui.ts";
 import {
   bind,
   interpolate,
@@ -78,6 +78,18 @@ test("setiap entri punya teks id & en yang tidak kosong dengan placeholder ident
   }
 });
 
+test("katalog modul tidak menimpa kunci katalog lain", () => {
+  const seen = new Map<string, string>(Object.keys(BASE_MESSAGES).map((k) => [k, "ui.ts"]));
+  const dup: string[] = [];
+  for (const [mod, catalog] of Object.entries(MODULE_MESSAGES)) {
+    for (const key of Object.keys(catalog)) {
+      if (seen.has(key)) dup.push(`${key} (${mod} vs ${seen.get(key)})`);
+      seen.set(key, mod);
+    }
+  }
+  assert.deepEqual(dup, []);
+});
+
 test("kunci UI dan backend tidak bertabrakan", () => {
   const overlap = Object.keys(UI_MESSAGES).filter((k) => k in BACKEND_MESSAGES);
   assert.deepEqual(overlap, []);
@@ -125,8 +137,8 @@ test("label metrik bergrup: grup tetap, label diterjemahkan", () => {
 test("bahasa yang didukung dan fungsi terikat bahasa", () => {
   assert.ok(isLang("id-ID") && isLang("en-US"));
   assert.ok(!isLang("fr-FR") && !isLang(undefined));
-  assert.equal(bind("en-US")("nav.settings"), "Settings");
-  assert.equal(bind("id-ID")("nav.settings"), "Pengaturan");
+  assert.equal(bind("en-US")("nav.about"), "About");
+  assert.equal(bind("id-ID")("nav.about"), "Tentang");
 });
 
 test("semua status hasil tersedia di kedua bahasa", () => {

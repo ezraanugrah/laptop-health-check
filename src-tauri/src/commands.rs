@@ -166,7 +166,8 @@ pub async fn open_media_window(
         tauri::WebviewUrl::App("index.html".into()),
     )
     .title(title)
-    .inner_size(480.0, 360.0)
+    // Cukup untuk pratinjau kamera 16:9 dan pemutar rekaman mikrofon.
+    .inner_size(520.0, 520.0)
     .resizable(false)
     .center()
     .focused(true)

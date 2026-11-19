@@ -12,6 +12,14 @@ import type {
   MediaSessionFinished,
   MediaTask,
 } from "../types/interactive";
+import type { TouchBarSession, TouchBarStatus, TouchBarTap } from "../types/touchbar";
+import type {
+  AudioOutputs,
+  BluetoothReport,
+  PortsSnapshot,
+  TouchBarPresence,
+  WifiReport,
+} from "../types/peripherals";
 
 /** `false` bila halaman dibuka di browser biasa (mis. `npm run dev`), bukan di aplikasi desktop. */
 export const inDesktopApp = isTauri;
@@ -50,4 +58,26 @@ export const api = {
   mediaGateStatus: () => invoke<GateStatus>("media_gate_status"),
   getLaunchMode: () => invoke<LaunchMode>("get_launch_mode"),
   reportSelfcheck: (report: unknown) => invoke<void>("report_selfcheck", { report }),
+  /** Laporan: JSON ke lokasi pilihan pengguna (dialog Simpan macOS); `null` = dibatalkan. */
+  exportReportJson: (contents: string, fileName: string) =>
+    invoke<string | null>("export_report_json", { contents, fileName }),
+  /** Laporan: dialog cetak macOS (Simpan sebagai PDF). */
+  printReport: () => invoke<void>("print_report"),
+  /** Tes Touch Bar: pasang tombol uji sementara (4–8 segmen) di jendela utama. */
+  touchBarTestStart: (segments: number) => invoke<TouchBarSession>("touchbar_test_start", { segments }),
+  /** Lepas tombol uji; `session` = hanya sesi itu, `null` = sesi apa pun. */
+  touchBarTestStop: (session: number | null = null) => invoke<boolean>("touchbar_test_stop", { session }),
+  touchBarTestStatus: () => invoke<TouchBarStatus>("touchbar_test_status"),
+  onTouchBarTap: (handler: (payload: TouchBarTap) => void): Promise<UnlistenFn> =>
+    listen<TouchBarTap>("touchbar-tap", (event) => handler(event.payload)),
+  /** Wi-Fi via CoreWLAN tanpa pemindaian + rute jaringan macOS (bukan uji internet). */
+  getWifiStatus: () => invoke<WifiReport>("get_wifi_status"),
+  /** Bluetooth: status pengontrol + jumlah/jenis perangkat (tanpa nama/alamat). */
+  getBluetoothStatus: () => invoke<BluetoothReport>("get_bluetooth_status"),
+  /** Potret port USB/Thunderbolt (untuk tes port manual: bandingkan dua potret). */
+  getPortsSnapshot: () => invoke<PortsSnapshot>("get_ports_snapshot"),
+  /** Keluaran audio (transport + nama hanya untuk perangkat bawaan Apple). */
+  getAudioOutputs: () => invoke<AudioOutputs>("get_audio_outputs"),
+  /** Bukti hardware Touch Bar (IORegistry + TouchBarServer), bukan nama model. */
+  getTouchBarPresence: () => invoke<TouchBarPresence>("get_touch_bar_presence"),
 };

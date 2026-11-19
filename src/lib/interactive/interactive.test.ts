@@ -112,17 +112,17 @@ test("ringkasan hanya menghitung Lulus/Gagal sebagai selesai (dua bahasa)", () =
     trackpad: { ...result("cancelled"), id: "trackpad" },
     touchBar: { ...result("unavailable"), id: "touchBar" },
   });
-  assert.deepEqual(s, { total: 9, tested: 2, passed: 1, failed: 1, unavailable: 1, cancelled: 1, notRun: 5 });
-  assert.equal(summaryText(s, tId), "2 dari 9 tes selesai · 1 lulus · 1 gagal · 1 tidak tersedia · 1 dibatalkan");
-  assert.equal(summaryText(s, tEn), "2 of 9 tests finished · 1 passed · 1 failed · 1 unavailable · 1 cancelled");
-  assert.equal(summaryText(summarize({}), tId), "0 dari 9 tes selesai");
+  assert.deepEqual(s, { total: 10, tested: 2, passed: 1, failed: 1, unavailable: 1, cancelled: 1, notRun: 6 });
+  assert.equal(summaryText(s, tId), "2 dari 10 tes selesai · 1 lulus · 1 gagal · 1 tidak tersedia · 1 dibatalkan");
+  assert.equal(summaryText(s, tEn), "2 of 10 tests finished · 1 passed · 1 failed · 1 unavailable · 1 cancelled");
+  assert.equal(summaryText(summarize({}), tId), "0 dari 10 tes selesai");
 });
 
-test("sembilan tes terdaftar; hanya Layar dan Keyboard yang sudah dibuat", () => {
-  assert.equal(TEST_ORDER.length, 9);
+test("sepuluh tes terdaftar dan semuanya sudah dibuat", () => {
+  assert.equal(TEST_ORDER.length, 10);
   assert.deepEqual(
     TEST_ORDER.filter((id) => TEST_META[id].implemented),
-    ["display", "keyboard"],
+    TEST_ORDER,
   );
   for (const id of TEST_ORDER) {
     assert.notEqual(tEn(TEST_META[id].title), TEST_META[id].title, `judul ${id} punya terjemahan`);

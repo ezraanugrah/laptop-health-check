@@ -79,6 +79,18 @@ export interface WindowHooks {
   /** Sesi aktif: tampilkan "Hentikan sekarang" yang memanggil `hold.stop`. */
   onActive: (hold: Hold, maxMs: number) => void;
   onInactive: () => void;
+  /**
+   * Opsional, hanya untuk tes interaktif (bukan self-check): stream aktif untuk pratinjau
+   * kamera / meter level mikrofon / rekaman SEMENTARA di memori. Tidak pernah disimpan ke disk.
+   */
+  onStream?: (stream: MediaStream) => void;
+  /** Opsional: data terukur tambahan (jumlah frame, level puncak, durasi rekaman) — tanpa isi media. */
+  collect?: () => Record<string, unknown>;
+  /**
+   * Opsional: langkah SETELAH semua track dihentikan (kamera/mikrofon sudah mati), mis.
+   * memutar ulang rekaman. Selesai saat pengguna menekan Selesai.
+   */
+  afterRelease?: () => Promise<Record<string, unknown> | void>;
 }
 
 const browserTimers = {
@@ -143,9 +155,13 @@ export async function runMediaWindowTask(task: MediaTask, hooks: WindowHooks) {
   });
   const activeAt = new Date().toISOString();
   hooks.log("mediaLog.active", dev);
+  hooks.onStream?.(acquired.session.stream);
   const stop = await holdWithUi(task, hooks);
   await acquired.session.release(stop.reason === "user" ? "dihentikan pengguna" : "batas waktu");
   const releasedAt = new Date().toISOString();
+  // Media sudah mati di titik ini; langkah lanjutan (putar ulang) tidak memakai perangkat.
+  const measured = hooks.collect?.() ?? null;
+  const afterRelease = (await hooks.afterRelease?.()) ?? null;
   const result = {
     purpose: task.purpose,
     probe,
@@ -159,6 +175,8 @@ export async function runMediaWindowTask(task: MediaTask, hooks: WindowHooks) {
     gateRightAfter,
     gateAfterRelease: await api.mediaGateStatus(),
     activeSessionsAfterRelease: activeSessionCount(),
+    measured,
+    afterRelease,
   };
   hooks.log("mediaLog.stopped", {
     ...dev,

@@ -162,7 +162,7 @@ pub trait Platform {
 |---|---|---|
 | Sistem | `sw_vers`, `sysctl` | — |
 | Baterai | `ioreg -rn AppleSmartBattery` (mAh, siklus, suhu, PermanentFailure) + `system_profiler SPPowerDataType` (kondisi macOS) | Apple Silicon: kapasitas via `AppleRawMaxCapacity` belum diverifikasi |
-| SSD/HDD | `diskutil list/info -plist` (dikonversi `plutil`) + `system_profiler SPNVMeDataType/SPSerialATADataType` | Keausan, TBW, dan jam pakai tidak tersedia tanpa admin |
+| SSD/HDD | `diskutil list -plist internal physical` + `diskutil info -plist` (dikonversi `plutil`; disk eksternal sengaja tidak disentuh agar tidak memicu izin "volume removable") + `system_profiler SPNVMeDataType/SPSerialATADataType` | Keausan, TBW, dan jam pakai tidak tersedia tanpa admin |
 | RAM | `sysctl` (memsize, swapusage, memorystatus_vm_pressure_level), `vm_stat`, `system_profiler SPMemoryDataType` | Kerusakan sel RAM tidak bisa diuji dari OS |
 | CPU | `sysctl`, Mach `host_statistics` (beban), `pmset -g therm` (batas kecepatan, peringatan) | Apple Silicon tidak mencetak `CPU_Speed_Limit` |
 | Suhu | SMC via IOKit (read-only) + suhu baterai `ioreg` | SMC tidak didokumentasikan; pola sensor Apple Silicon belum diverifikasi |
@@ -272,6 +272,12 @@ Rencana sumber data Fase 3 (audio, kamera, Wi-Fi, Bluetooth, USB/Thunderbolt) ad
 - Default **Gelap**, sudah ditetapkan di `index.html` agar tidak berkedip saat dibuka.
 - Tidak ada style inline (CSP).
 
+**Kontrol di header global** (`src/components/header/`):
+- `AppHeader` berada di area konten (kanan sidebar), di luar area gulir: judul halaman aktif di kiri, `LanguageMenu` (🇮🇩 ID / 🇬🇧 EN) dan `ThemeToggle` (ikon + label tema aktif) di kanan. Tidak ada halaman Pengaturan terpisah.
+- Keduanya hanya memanggil `update()` dari `PreferencesProvider`; daftar bahasa dan label tema ada di `src/lib/settings.ts` (`LANGUAGE_OPTIONS`, `THEME_LABEL`), navigasi menu di `src/lib/menu.ts`.
+- `z-30`, di bawah overlay Tes Layar/Keyboard (`z-40`/`z-50`). Selama Tes Keyboard semua tombol di-`preventDefault`, sehingga Spasi/Enter tidak memicu tombol header yang sedang fokus.
+- Jendela tes media dan mode `LHC_SELFCHECK` tidak memakai header.
+
 **Preferensi.**
 - Disimpan sebagai `{ "theme": "dark"|"light", "language": "id-ID"|"en-US" }` di `~/Library/Application Support/com.ezraanugrah.laptophealthcheck/settings.json` (`src-tauri/src/settings.rs`). Penulisannya atomik (file sementara lalu `rename`).
 - Nilai rusak atau tidak dikenal jatuh ke default per field.
@@ -300,3 +306,19 @@ Rencana sumber data Fase 3 (audio, kamera, Wi-Fi, Bluetooth, USB/Thunderbolt) ad
 - placeholder id/en identik;
 - tidak ada teks kosong;
 - fallback dan kunci bertingkat bekerja.
+
+## 13. Tes hardware tambahan dan laporan
+
+| Modul | Frontend | Backend (read-only) | Bukti terukur | Dikonfirmasi pengguna |
+|---|---|---|---|---|
+| Trackpad | `lib/interactive/trackpad.ts`, `TrackpadTest.tsx` | — | pointer/klik/klik ganda/contextmenu/wheel/seret, GestureEvent | gestur sistem 3/4 jari, rasa klik |
+| Speaker | `speaker.ts`, `SpeakerTest.tsx` (Web Audio) | `get_audio_outputs` (`SPAudioDataType`) | jalur output (info) | kiri/kanan/stereo jelas |
+| Touch Bar | `touchbar.ts`, `TouchBarTest.tsx` | `get_touch_bar_presence` (IORegistry + `pgrep`), `touchbar.rs` (NSTouchBar) | ketukan tombol uji, F1–F12 | tampilan merata, area mati |
+| Wi-Fi | `wifi.ts`, `WifiTest.tsx` | `get_wifi_status` (CoreWLAN tanpa scan/SSID, `scutil --nwi`) | adaptor menyala, RSSI/laju (info) | opsional |
+| Bluetooth | `bluetooth.ts`, `BluetoothTest.tsx` | `get_bluetooth_status` (`SPBluetoothDataType`, tanpa nama/alamat) | pengontrol menyala | opsional |
+| Port | `ports.ts`, `PortsTest.tsx` | `get_ports_snapshot` (`SPThunderboltDataType` + `SPUSBHostDataType`) | perangkat baru setelah dicolok | port yang dipakai, perangkat/kabel baik |
+| Kamera/Mikrofon | `media-tests.ts`, `MediaTest.tsx`, `MediaWindowPage.tsx` | jendela media terpisah (§7.1) | frame / stream audio, perangkat & gerbang tertutup | gambar/lampu, suara rekaman |
+
+- Semua periferal lewat trait `Platform` (implementasi macOS, `unsupported`, `fake`) dan perintah absolut ber-timeout; kunci identitas (serial, alamat, UID, nama perangkat) disaring tanpa peduli huruf besar/kecil.
+- Katalog terjemahan per modul ada di `src/i18n/modules/*.ts` dan digabung ke `UI_MESSAGES`; test menolak kunci yang bertabrakan.
+- **Laporan** (`lib/report.ts`, `ReportPage.tsx`, `PrintableReport.tsx`, `report_export.rs`): dokumen yang sudah diterjemahkan dibangun murni dari diagnostik + hasil interaktif. JSON disimpan lewat NSSavePanel (path tidak pernah datang dari frontend); PDF lewat dialog cetak macOS. Tes yang belum dijalankan/belum tersedia tidak pernah tampil Lulus; nomor seri hanya bila dipilih saat ekspor.

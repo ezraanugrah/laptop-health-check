@@ -2,8 +2,17 @@
 // Kedua bahasa ditulis berdampingan agar tidak ada yang tertinggal.
 // Placeholder `{nama}` diisi lewat parameter t(kunci, { nama }).
 import type { Entry } from "./types.ts";
+import { TRACKPAD_MESSAGES } from "./modules/trackpad.ts";
+import { SPEAKER_MESSAGES } from "./modules/speaker.ts";
+import { WIFI_MESSAGES } from "./modules/wifi.ts";
+import { BLUETOOTH_MESSAGES } from "./modules/bluetooth.ts";
+import { PORTS_MESSAGES } from "./modules/ports.ts";
+import { TOUCHBAR_MESSAGES } from "./modules/touchbar.ts";
+import { CAMERA_MESSAGES } from "./modules/camera.ts";
+import { MICROPHONE_MESSAGES } from "./modules/microphone.ts";
+import { REPORT_MESSAGES } from "./modules/report.ts";
 
-export const UI_MESSAGES = {
+const BASE_MESSAGES = {
   // --- Aplikasi & navigasi -------------------------------------------------
   "app.name": { id: "Laptop Health Check", en: "Laptop Health Check" },
   "app.tagline": { id: "Cek kesehatan Mac-mu", en: "Check your Mac's health" },
@@ -12,7 +21,6 @@ export const UI_MESSAGES = {
   "nav.dashboard": { id: "Ringkasan", en: "Summary" },
   "nav.tests": { id: "Tes Interaktif", en: "Interactive Tests" },
   "nav.reports": { id: "Laporan", en: "Reports" },
-  "nav.settings": { id: "Pengaturan", en: "Settings" },
   "nav.about": { id: "Tentang", en: "About" },
   "nav.soon": { id: "Segera", en: "Soon" },
 
@@ -122,32 +130,22 @@ export const UI_MESSAGES = {
   "about.verified": { id: "Terverifikasi di hardware asli", en: "Verified on real hardware" },
   "about.preview": { id: "Pratinjau (belum diverifikasi)", en: "Preview (not yet verified)" },
 
-  // --- Pengaturan ------------------------------------------------------------------------
-  "settings.title": { id: "Pengaturan", en: "Settings" },
-  "settings.subtitle": {
-    id: "Preferensi disimpan lokal di Mac ini dan tidak pernah dikirim ke mana pun.",
-    en: "Preferences are stored locally on this Mac and never sent anywhere.",
+  // --- Preferensi di header global (tema & bahasa) ---------------------------------------
+  "prefs.controls": {
+    id: "Preferensi tampilan dan bahasa (disimpan lokal di Mac ini)",
+    en: "Display and language preferences (stored locally on this Mac)",
   },
-  "settings.appearance": { id: "Tampilan", en: "Appearance" },
-  "settings.appearanceHint": {
-    id: "Tema berubah seketika di semua halaman.",
-    en: "The theme changes instantly on every page.",
-  },
-  "settings.theme.light": { id: "Terang", en: "Light" },
-  "settings.theme.dark": { id: "Gelap", en: "Dark" },
-  "settings.language": { id: "Bahasa", en: "Language" },
-  "settings.languageHint": {
-    id: "Bahasa antarmuka dan hasil pemeriksaan. Nama hardware dan kode teknis tidak diterjemahkan.",
-    en: "Language for the interface and check results. Hardware names and technical codes are not translated.",
-  },
-  "settings.lang.id": { id: "Bahasa Indonesia", en: "Bahasa Indonesia" },
-  "settings.lang.en": { id: "English", en: "English" },
-  "settings.active": { id: "Aktif", en: "Active" },
-  "settings.saved": { id: "Tersimpan", en: "Saved" },
-  "settings.saveFailed": { id: "Gagal menyimpan: {error}", en: "Could not save: {error}" },
-  "settings.browserNote": {
-    id: "Mode browser (pratinjau): preferensi disimpan di browser ini saja.",
-    en: "Browser mode (preview): preferences are stored in this browser only.",
+  "prefs.language": { id: "Bahasa", en: "Language" },
+  "prefs.languageButton": { id: "Bahasa: {name}. Pilih bahasa", en: "Language: {name}. Choose language" },
+  "prefs.lang.id": { id: "Bahasa Indonesia", en: "Bahasa Indonesia" },
+  "prefs.lang.en": { id: "English", en: "English" },
+  "prefs.theme.light": { id: "Terang", en: "Light" },
+  "prefs.theme.dark": { id: "Gelap", en: "Dark" },
+  "prefs.themeButton": { id: "Tema: {current}. Ganti ke {next}", en: "Theme: {current}. Switch to {next}" },
+  "prefs.saveFailedShort": { id: "Belum tersimpan", en: "Not saved" },
+  "prefs.saveFailed": {
+    id: "Preferensi gagal disimpan: {error}",
+    en: "Preferences could not be saved: {error}",
   },
 
   // --- Tes Interaktif: halaman & kartu ----------------------------------------------------
@@ -162,15 +160,15 @@ export const UI_MESSAGES = {
   },
   "tests.securityTitle": { id: "Keamanan akses perangkat", en: "Device access security" },
   "tests.securityCamera": {
-    id: "Kamera dan mikrofon terkunci secara default. Akses hanya dibuka di jendela tes terpisah saat tes kamera/mikrofon dimulai — belum ada di versi ini.",
-    en: "Camera and microphone are locked by default. Access is only opened in a separate test window when a camera/microphone test starts — not yet available in this version.",
+    id: "Kamera dan mikrofon terkunci secara default. Akses hanya dibuka di jendela tes terpisah, setelah Anda menyetujuinya, saat tes kamera/mikrofon dimulai (maks. 10 dtk).",
+    en: "Camera and microphone are locked by default. Access is only opened in a separate test window, after you agree, when a camera/microphone test starts (max 10 s).",
   },
   "tests.gateState": { id: "Gerbang izin saat ini: {state}.", en: "Permission gate is currently {state}." },
   "tests.gateOpen": { id: "terbuka", en: "open" },
   "tests.gateClosed": { id: "tertutup", en: "closed" },
   "tests.securityNoStore": {
-    id: "Tidak ada rekaman yang disimpan, tidak ada data yang dikirim, dan pengaturan sistem tidak diubah.",
-    en: "No recordings are stored, no data is sent, and system settings are not changed.",
+    id: "Tidak ada foto, video, atau rekaman yang disimpan ke disk; rekaman tes mikrofon hanya di memori lalu dihapus. Tidak ada data yang dikirim dan pengaturan sistem tidak diubah.",
+    en: "No photo, video, or recording is saved to disk; the microphone test recording stays in memory and is then deleted. No data is sent and system settings are not changed.",
   },
   "tests.securityKeyboard": {
     id: "Tes keyboard hanya membaca tombol saat jendela tes aktif, bukan di aplikasi lain.",
@@ -182,6 +180,7 @@ export const UI_MESSAGES = {
   },
   "tests.start": { id: "Mulai", en: "Start" },
   "tests.repeat": { id: "Ulangi", en: "Repeat" },
+  "tests.notAvailableYet": { id: "Belum tersedia", en: "Not available yet" },
   "tests.notBuilt": { id: "Belum dibuat — dijadwalkan Milestone {milestone}", en: "Not built yet — planned for Milestone {milestone}" },
   "tests.finishedAt": { id: "Selesai {time}", en: "Finished {time}" },
   "tests.noTouchBar": { id: "Mac ini tidak punya Touch Bar.", en: "This Mac has no Touch Bar." },
@@ -239,10 +238,15 @@ export const UI_MESSAGES = {
     id: "Pratinjau kamera dengan izin eksplisit, tanpa menyimpan gambar.",
     en: "Camera preview with explicit permission, without storing images.",
   },
-  "test.wireless.title": { id: "Wi-Fi & Bluetooth", en: "Wi-Fi & Bluetooth" },
-  "test.wireless.description": {
-    id: "Adaptor dan status radio, tanpa menyambung ke jaringan.",
-    en: "Adapters and radio status, without connecting to any network.",
+  "test.wifi.title": { id: "Wi-Fi", en: "Wi-Fi" },
+  "test.wifi.description": {
+    id: "Adaptor, status, dan sinyal Wi-Fi, tanpa memindai atau mengubah koneksi.",
+    en: "Wi-Fi adapter, status, and signal, without scanning or changing the connection.",
+  },
+  "test.bluetooth.title": { id: "Bluetooth", en: "Bluetooth" },
+  "test.bluetooth.description": {
+    id: "Controller dan status Bluetooth, tanpa pairing atau pencarian perangkat.",
+    en: "Bluetooth controller and status, without pairing or device discovery.",
   },
   "test.ports.title": { id: "Port USB/Thunderbolt", en: "USB/Thunderbolt ports" },
   "test.ports.description": {
@@ -579,3 +583,31 @@ export const UI_MESSAGES = {
     en: "Camera/microphone access is only available through user-started tests.",
   },
 } satisfies Record<string, Entry>;
+
+/** Katalog per modul (src/i18n/modules); kunci tidak boleh bertabrakan (dicek test). */
+export const MODULE_MESSAGES = {
+  trackpad: TRACKPAD_MESSAGES,
+  speaker: SPEAKER_MESSAGES,
+  wifi: WIFI_MESSAGES,
+  bluetooth: BLUETOOTH_MESSAGES,
+  ports: PORTS_MESSAGES,
+  touchbar: TOUCHBAR_MESSAGES,
+  camera: CAMERA_MESSAGES,
+  microphone: MICROPHONE_MESSAGES,
+  report: REPORT_MESSAGES,
+} as const;
+
+export const UI_MESSAGES = {
+  ...BASE_MESSAGES,
+  ...TRACKPAD_MESSAGES,
+  ...SPEAKER_MESSAGES,
+  ...WIFI_MESSAGES,
+  ...BLUETOOTH_MESSAGES,
+  ...PORTS_MESSAGES,
+  ...TOUCHBAR_MESSAGES,
+  ...CAMERA_MESSAGES,
+  ...MICROPHONE_MESSAGES,
+  ...REPORT_MESSAGES,
+};
+
+export { BASE_MESSAGES };

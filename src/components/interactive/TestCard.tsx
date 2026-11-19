@@ -26,7 +26,12 @@ export function TestCard({ id, result, onStart, blockedReason }: Props) {
           <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">{t(meta.description)}</p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
-          <ToneBadge label={outcomeLabel(result, t)} tone={OUTCOME_META[outcome].tone} />
+          {meta.implemented ? (
+            <ToneBadge label={outcomeLabel(result, t)} tone={OUTCOME_META[outcome].tone} />
+          ) : (
+            // Tes yang belum dibuat: "Belum tersedia", tidak pernah dihitung lulus.
+            <ToneBadge label={t("tests.notAvailableYet")} tone="neutral" />
+          )}
           {notes > 0 && <ToneBadge label={t("tests.notes", { n: notes })} tone="warning" />}
         </div>
       </header>

@@ -1,0 +1,107 @@
+{
+  "SPUSBHostDataType": [
+    {
+      "_name": "USB 2.0 Bus",
+      "Driver": "AppleIntelICLUSBXHCI",
+      "USBControllerKeyPCIDeviceID": "0x38ed",
+      "USBControllerKeyPCIRevisionID": "0x0010",
+      "USBControllerKeyPCIVendorID": "0x8086",
+      "USBKeyHardwareType": "Built-in",
+      "USBKeyLocationID": "0x14000000"
+    },
+    {
+      "_name": "USB 3.1 Bus",
+      "Driver": "AppleIntelICLUSBXHCI",
+      "USBControllerKeyPCIDeviceID": "0x8a13",
+      "USBControllerKeyPCIRevisionID": "0x0003",
+      "USBControllerKeyPCIVendorID": "0x8086",
+      "USBKeyHardwareType": "Built-in",
+      "USBKeyLocationID": "0x0d000000"
+    },
+    {
+      "_items": [
+        {
+          "_name": "Perangkat USB",
+          "USBDeviceKeyLinkSpeed": "480 Mb/s",
+          "USBDeviceKeyPowerAllocation": "2.5 W (500 mA)",
+          "USBDeviceKeyProductID": "0x8103",
+          "USBDeviceKeyProductVersion": "0x0216",
+          "USBDeviceKeyVendorID": "0x05ac",
+          "USBDeviceKeyVendorName": "Apple",
+          "USBKeyHardwareType": "Built-in",
+          "USBKeyLocationID": "0x80400000"
+        },
+        {
+          "_name": "Perangkat USB",
+          "USBDeviceKeyLinkSpeed": "480 Mb/s",
+          "USBDeviceKeyPowerAllocation": "2.5 W (500 mA)",
+          "USBDeviceKeyProductID": "0x8233",
+          "USBDeviceKeyProductVersion": "0x0201",
+          "USBDeviceKeyVendorID": "0x05ac",
+          "USBDeviceKeyVendorName": "Apple Inc.",
+          "USBKeyHardwareType": "Built-in",
+          "USBKeyLocationID": "0x80100000"
+        },
+        {
+          "_name": "Perangkat USB",
+          "USBDeviceKeyLinkSpeed": "480 Mb/s",
+          "USBDeviceKeyPowerAllocation": "2.5 W (500 mA)",
+          "USBDeviceKeyProductID": "0x8302",
+          "USBDeviceKeyProductVersion": "0x0201",
+          "USBDeviceKeyVendorID": "0x05ac",
+          "USBDeviceKeyVendorName": "Apple Inc.",
+          "USBKeyHardwareType": "Built-in",
+          "USBKeyLocationID": "0x80600000"
+        },
+        {
+          "_name": "Perangkat USB",
+          "USBDeviceKeyLinkSpeed": "480 Mb/s",
+          "USBDeviceKeyPowerAllocation": "2.5 W (500 mA)",
+          "USBDeviceKeyProductID": "0x8514",
+          "USBDeviceKeyProductVersion": "0x0201",
+          "USBDeviceKeyVendorID": "0x05ac",
+          "USBDeviceKeyVendorName": "Apple Inc.",
+          "USBKeyHardwareType": "Built-in",
+          "USBKeyLocationID": "0x80200000"
+        },
+        {
+          "_name": "Perangkat USB",
+          "USBDeviceKeyLinkSpeed": "480 Mb/s",
+          "USBDeviceKeyPowerAllocation": "2.5 W (500 mA)",
+          "USBDeviceKeyProductID": "0x8102",
+          "USBDeviceKeyProductVersion": "0x0201",
+          "USBDeviceKeyVendorID": "0x05ac",
+          "USBDeviceKeyVendorName": "Apple Inc.",
+          "USBKeyHardwareType": "Built-in",
+          "USBKeyLocationID": "0x80700000"
+        },
+        {
+          "_name": "Perangkat USB",
+          "USBDeviceKeyLinkSpeed": "480 Mb/s",
+          "USBDeviceKeyPowerAllocation": "2.5 W (500 mA)",
+          "USBDeviceKeyProductID": "0x8262",
+          "USBDeviceKeyProductVersion": "0x0201",
+          "USBDeviceKeyVendorID": "0x05ac",
+          "USBDeviceKeyVendorName": "Apple Inc.",
+          "USBKeyHardwareType": "Built-in",
+          "USBKeyLocationID": "0x80300000"
+        },
+        {
+          "_name": "Perangkat USB",
+          "USBDeviceKeyLinkSpeed": "480 Mb/s",
+          "USBDeviceKeyPowerAllocation": "2.5 W (500 mA)",
+          "USBDeviceKeyProductID": "0x027e",
+          "USBDeviceKeyProductVersion": "0x0933",
+          "USBDeviceKeyVendorID": "0x05ac",
+          "USBDeviceKeyVendorName": "Apple Inc.",
+          "USBKeyHardwareType": "Built-in",
+          "USBKeyLocationID": "0x80500000"
+        }
+      ],
+      "_name": "Apple T2 Bus",
+      "Driver": "AppleUSBVHCIBCE",
+      "USBKeyHardwareType": "Built-in",
+      "USBKeyLocationID": "0x80000000"
+    }
+  ]
+}

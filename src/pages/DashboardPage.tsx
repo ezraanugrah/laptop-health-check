@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
 import type { AppInfo, DiagnosticsReport } from "../types/diagnostics";
-import { api, inDesktopApp } from "../lib/api";
+import { inDesktopApp } from "../lib/api";
 import {
   CATEGORY_META,
   CATEGORY_ORDER,
@@ -15,46 +14,26 @@ import { CheckCard } from "../components/CheckCard";
 import { SerialNumberRow } from "../components/SerialNumberRow";
 import { HardwareStatusBadge, StatusBadge } from "../components/StatusBadge";
 
-export function DashboardPage({ appInfo }: { appInfo: AppInfo | null }) {
+interface Props {
+  appInfo: AppInfo | null;
+  /** Hasil diagnostik dikelola App agar dipakai bersama halaman Laporan. */
+  report: DiagnosticsReport | null;
+  running: boolean;
+  error: string | null;
+  onRun: () => void;
+}
+
+export function DashboardPage({ appInfo, report, running, error, onRun }: Props) {
   const { t, tx, dateTime, duration } = useI18n();
-  const [report, setReport] = useState<DiagnosticsReport | null>(null);
-  const [running, setRunning] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const desktop = inDesktopApp();
-  const started = useRef(false);
-
-  const runChecks = useCallback(async () => {
-    setRunning(true);
-    setError(null);
-    try {
-      setReport(await api.runDiagnostics());
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setRunning(false);
-    }
-  }, []);
-
-  // Pemeriksaan otomatis saat aplikasi dibuka (sekali, aman untuk StrictMode).
-  useEffect(() => {
-    if (!desktop) {
-      setError("notDesktop");
-      return;
-    }
-    if (started.current) return;
-    started.current = true;
-    void runChecks();
-  }, [desktop, runChecks]);
+  const runChecks = async () => onRun();
 
   const deviceChecks = report?.checks.filter((c) => c.category === "deviceSecurity") ?? [];
 
   return (
     <div className="mx-auto max-w-6xl space-y-5 p-6">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{t("dashboard.title")}</h1>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{t("dashboard.subtitle")}</p>
-        </div>
+      <header className="flex flex-wrap items-center justify-between gap-4">
+        <p className="text-sm text-slate-600 dark:text-slate-400">{t("dashboard.subtitle")}</p>
         <button
           type="button"
           onClick={() => void runChecks()}

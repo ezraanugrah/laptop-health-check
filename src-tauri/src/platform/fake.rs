@@ -3,9 +3,11 @@
 
 use super::{Platform, ProbeError};
 use crate::diagnostics::raw::{
-    BatteryInfo, CpuInfo, DiskInfo, FanReading, GpuInfo, MemoryInfo, MemoryModule, MemoryPressure,
-    OwnershipInfo, SensorKind, SensorReadings, SystemOverview, TemperatureReading, ThermalStatus,
-    VolumeSpace,
+    AudioDevice, AudioTransport, BatteryInfo, BluetoothInfo, CpuInfo, DiskInfo, FanReading,
+    GpuInfo, MemoryInfo, MemoryModule, MemoryPressure, NetworkRoute, OwnershipInfo, PortsInfo,
+    ReceptacleStatus, SensorKind, SensorReadings, SystemOverview, TemperatureReading,
+    ThermalStatus, ThunderboltBus, ThunderboltReceptacle, TouchBarEvidence, UsbController,
+    UsbDevice, VolumeSpace, WifiBand, WifiChannel, WifiInterfaceMode, WifiPhyMode, WifiStatus,
 };
 use crate::diagnostics::types::{CheckId, PlatformSupport, SupportLevel};
 
@@ -144,6 +146,131 @@ impl Platform for Healthy {
         Ok(Some("TEST-SERIAL".into()))
     }
 
+    fn wifi() -> Result<Option<WifiStatus>, ProbeError> {
+        Ok(Some(WifiStatus {
+            interface_name: Some("en0".into()),
+            power_on: Some(true),
+            service_active: Some(true),
+            rssi_dbm: Some(-55),
+            noise_dbm: Some(-90),
+            transmit_rate_mbps: Some(866.0),
+            phy_mode: Some(WifiPhyMode::Ac),
+            channel: Some(WifiChannel {
+                number: Some(36),
+                band: WifiBand::Ghz5,
+                width_mhz: Some(80),
+            }),
+            interface_mode: Some(WifiInterfaceMode::Station),
+        }))
+    }
+
+    fn network_route() -> Result<NetworkRoute, ProbeError> {
+        Ok(NetworkRoute {
+            interfaces: vec!["en0".into()],
+            ipv4_reachable: Some(true),
+            ipv6_reachable: Some(false),
+        })
+    }
+
+    fn bluetooth() -> Result<BluetoothInfo, ProbeError> {
+        Ok(BluetoothInfo {
+            controller_present: true,
+            powered: Some(true),
+            discoverable: Some(false),
+            chipset: Some("TEST_CHIP".into()),
+            firmware: Some("v1".into()),
+            transport: Some("UART".into()),
+            vendor_id: Some("0x004C (Apple)".into()),
+            services: vec!["A2DP".into(), "HID".into()],
+            connected_types: vec![Some("Headphones".into()), None],
+            paired_not_connected: 2,
+        })
+    }
+
+    fn ports() -> Result<PortsInfo, ProbeError> {
+        Ok(PortsInfo {
+            thunderbolt: Some(vec![ThunderboltBus {
+                index: Some(0),
+                receptacles: vec![
+                    ThunderboltReceptacle {
+                        id: Some(1),
+                        status: ReceptacleStatus::Empty,
+                        speed_gbps: Some(40.0),
+                        speed_is_max: true,
+                        link_status: Some("0x101".into()),
+                    },
+                    ThunderboltReceptacle {
+                        id: Some(2),
+                        status: ReceptacleStatus::Connected,
+                        speed_gbps: Some(20.0),
+                        speed_is_max: false,
+                        link_status: None,
+                    },
+                ],
+                connected_devices: 0,
+            }]),
+            usb: Some(vec![
+                UsbController {
+                    usb_version: Some("3.1".into()),
+                    built_in: Some(true),
+                    apple_internal: false,
+                    location_id: Some("0x0d000000".into()),
+                    devices: vec![UsbDevice {
+                        built_in: Some(false),
+                        link_speed: Some("5 Gb/s".into()),
+                        power: Some("4.5 W (900 mA)".into()),
+                        vendor_id: Some("0x1234".into()),
+                        location_id: Some("0x0d100000".into()),
+                    }],
+                },
+                UsbController {
+                    usb_version: None,
+                    built_in: Some(true),
+                    apple_internal: true,
+                    location_id: Some("0x80000000".into()),
+                    devices: vec![UsbDevice {
+                        built_in: Some(true),
+                        link_speed: Some("480 Mb/s".into()),
+                        power: None,
+                        vendor_id: Some("0x05ac".into()),
+                        location_id: Some("0x80100000".into()),
+                    }],
+                },
+            ]),
+        })
+    }
+
+    fn audio_devices() -> Result<Vec<AudioDevice>, ProbeError> {
+        Ok(vec![
+            AudioDevice {
+                builtin_name: Some("Speaker Uji".into()),
+                transport: AudioTransport::BuiltIn,
+                output_channels: Some(2),
+                input_channels: None,
+                default_output: true,
+                default_input: false,
+                default_system_output: true,
+            },
+            AudioDevice {
+                builtin_name: None,
+                transport: AudioTransport::Virtual,
+                output_channels: Some(2),
+                input_channels: Some(2),
+                default_output: false,
+                default_input: false,
+                default_system_output: false,
+            },
+        ])
+    }
+
+    fn touch_bar() -> Result<TouchBarEvidence, ProbeError> {
+        Ok(TouchBarEvidence {
+            display_device: Some(true),
+            backlight_device: Some(true),
+            server_running: Some(true),
+        })
+    }
+
     fn sources(_check: CheckId) -> &'static [&'static str] {
         &["sumber uji"]
     }
@@ -190,6 +317,24 @@ impl Platform for Failing {
         fail()
     }
     fn serial_number() -> Result<Option<String>, ProbeError> {
+        fail()
+    }
+    fn wifi() -> Result<Option<WifiStatus>, ProbeError> {
+        fail()
+    }
+    fn network_route() -> Result<NetworkRoute, ProbeError> {
+        fail()
+    }
+    fn bluetooth() -> Result<BluetoothInfo, ProbeError> {
+        fail()
+    }
+    fn ports() -> Result<PortsInfo, ProbeError> {
+        fail()
+    }
+    fn audio_devices() -> Result<Vec<AudioDevice>, ProbeError> {
+        fail()
+    }
+    fn touch_bar() -> Result<TouchBarEvidence, ProbeError> {
         fail()
     }
     fn sources(_check: CheckId) -> &'static [&'static str] {

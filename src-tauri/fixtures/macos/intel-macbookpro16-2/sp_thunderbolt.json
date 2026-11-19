@@ -1,0 +1,44 @@
+{
+  "SPThunderboltDataType": [
+    {
+      "_name": "thunderbolt_bus_1",
+      "device_name_key": "Perangkat Thunderbolt",
+      "receptacle_1_tag": {
+        "current_speed_key": "Up to 40 Gb/s",
+        "lc_version_key": "1.38.0",
+        "link_status_key": "0x101",
+        "receptacle_id_key": "4",
+        "receptacle_status_key": "receptacle_no_devices_connected"
+      },
+      "receptacle_2_tag": {
+        "current_speed_key": "Up to 40 Gb/s",
+        "lc_version_key": "1.38.0",
+        "link_status_key": "0x101",
+        "receptacle_id_key": "3",
+        "receptacle_status_key": "receptacle_no_devices_connected"
+      },
+      "switch_version_key": "86.0",
+      "vendor_name_key": "Apple Inc."
+    },
+    {
+      "_name": "thunderbolt_bus_0",
+      "device_name_key": "Perangkat Thunderbolt",
+      "receptacle_1_tag": {
+        "current_speed_key": "Up to 40 Gb/s",
+        "lc_version_key": "1.38.0",
+        "link_status_key": "0x101",
+        "receptacle_id_key": "2",
+        "receptacle_status_key": "receptacle_no_devices_connected"
+      },
+      "receptacle_2_tag": {
+        "current_speed_key": "Up to 40 Gb/s",
+        "lc_version_key": "1.38.0",
+        "link_status_key": "0x101",
+        "receptacle_id_key": "1",
+        "receptacle_status_key": "receptacle_no_devices_connected"
+      },
+      "switch_version_key": "86.0",
+      "vendor_name_key": "Apple Inc."
+    }
+  ]
+}

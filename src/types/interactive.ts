@@ -11,7 +11,8 @@ export type InteractiveTestId =
   | "speakers"
   | "microphone"
   | "camera"
-  | "wireless"
+  | "wifi"
+  | "bluetooth"
   | "ports";
 
 /**

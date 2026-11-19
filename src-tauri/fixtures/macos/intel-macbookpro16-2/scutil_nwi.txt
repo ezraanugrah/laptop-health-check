@@ -1,0 +1,17 @@
+Network information
+
+IPv4 network interface information
+     en0 : flags      : 0x7 (IPv4,IPv6,DNS)
+           address    : <disensor>
+           reach      : 0x00000002 (Reachable)
+
+   REACH : flags 0x00000002 (Reachable)
+
+IPv6 network interface information
+     en0 : flags      : 0x7 (IPv4,IPv6,DNS)
+           address    : <disensor>
+           reach      : 0x00000002 (Reachable)
+
+   REACH : flags 0x00000002 (Reachable)
+
+Network interfaces: en0

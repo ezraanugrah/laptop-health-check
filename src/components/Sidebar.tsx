@@ -1,13 +1,13 @@
 import type { UiKey } from "../i18n/translate";
 import { useI18n } from "../lib/preferences";
 
-export type PageId = "dashboard" | "tests" | "reports" | "settings" | "about";
+export type PageId = "dashboard" | "tests" | "reports" | "about";
 
+// Tema & bahasa ada di header global (src/components/header), bukan halaman tersendiri.
 const NAV: { id: PageId; label: UiKey; soon?: boolean }[] = [
   { id: "dashboard", label: "nav.dashboard" },
   { id: "tests", label: "nav.tests" },
-  { id: "reports", label: "nav.reports", soon: true },
-  { id: "settings", label: "nav.settings" },
+  { id: "reports", label: "nav.reports" },
   { id: "about", label: "nav.about" },
 ];
 

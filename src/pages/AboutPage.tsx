@@ -13,7 +13,6 @@ export function AboutPage({ info }: { info: AppInfo | null }) {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-8">
-      <h1 className="text-2xl font-semibold tracking-tight">{t("about.title")}</h1>
       <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
         <p className="font-semibold">{t("app.name")}</p>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{t("about.description")}</p>

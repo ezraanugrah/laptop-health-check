@@ -6,6 +6,8 @@
 //! - Tidak ada field untuk nama organisasi, UPN, nama komputer, atau nama
 //!   pengguna — data itu tidak boleh dibaca ke dalam model.
 
+use serde::Serialize;
+
 /// Identitas sistem.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct SystemOverview {
@@ -185,4 +187,208 @@ pub struct OwnershipInfo {
     pub provisioning_enrolled: Option<bool>,
     /// Terdaftar MDM.
     pub mdm_enrolled: Option<bool>,
+}
+
+// ---------------------------------------------------------------------------
+// Periferal (Fase 3: Wi-Fi, Bluetooth, port USB/Thunderbolt, audio, Touch Bar)
+//
+// Privasi: TIDAK ADA field untuk SSID/BSSID, alamat MAC/BD, nomor seri, UID,
+// alamat IP, atau nama perangkat Bluetooth/USB. Lapisan platform membuang
+// data itu sebelum mengisi struct di bawah. Enum kecil dan struct port/audio
+// ikut diserialisasi apa adanya ke frontend (camelCase), jadi wajib tetap
+// bebas data identitas.
+// ---------------------------------------------------------------------------
+
+/// Standar Wi-Fi aktif (CoreWLAN `CWPHYMode`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub enum WifiPhyMode {
+    #[serde(rename = "none")]
+    None,
+    #[serde(rename = "11a")]
+    A,
+    #[serde(rename = "11b")]
+    B,
+    #[serde(rename = "11g")]
+    G,
+    #[serde(rename = "11n")]
+    N,
+    #[serde(rename = "11ac")]
+    Ac,
+    #[serde(rename = "11ax")]
+    Ax,
+    #[serde(rename = "11be")]
+    Be,
+    #[serde(rename = "unknown")]
+    Unknown,
+}
+
+/// Pita frekuensi kanal Wi-Fi (CoreWLAN `CWChannelBand`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub enum WifiBand {
+    #[serde(rename = "2.4GHz")]
+    Ghz2_4,
+    #[serde(rename = "5GHz")]
+    Ghz5,
+    #[serde(rename = "6GHz")]
+    Ghz6,
+    #[serde(rename = "unknown")]
+    Unknown,
+}
+
+/// Mode antarmuka (CoreWLAN `CWInterfaceMode`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum WifiInterfaceMode {
+    None,
+    Station,
+    Ibss,
+    HostAp,
+    Unknown,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct WifiChannel {
+    pub number: Option<u32>,
+    pub band: WifiBand,
+    pub width_mhz: Option<u32>,
+}
+
+/// Status antarmuka Wi-Fi dari CoreWLAN, TANPA pemindaian jaringan.
+/// `None` pada nilai sinyal berarti tidak tersambung / tidak dilaporkan.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct WifiStatus {
+    /// Nama antarmuka BSD, mis. "en0" (bukan identitas perangkat).
+    pub interface_name: Option<String>,
+    pub power_on: Option<bool>,
+    pub service_active: Option<bool>,
+    pub rssi_dbm: Option<i32>,
+    pub noise_dbm: Option<i32>,
+    pub transmit_rate_mbps: Option<f64>,
+    pub phy_mode: Option<WifiPhyMode>,
+    pub channel: Option<WifiChannel>,
+    pub interface_mode: Option<WifiInterfaceMode>,
+}
+
+/// Rute jaringan menurut macOS (`scutil --nwi`). Tidak mengirim lalu lintas
+/// jaringan apa pun dan BUKAN uji koneksi internet. Alamat IP dibuang parser.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct NetworkRoute {
+    /// Nama antarmuka yang dilaporkan, mis. ["en0"].
+    pub interfaces: Vec<String>,
+    pub ipv4_reachable: Option<bool>,
+    pub ipv6_reachable: Option<bool>,
+}
+
+/// Pengontrol Bluetooth (`system_profiler SPBluetoothDataType`).
+/// Perangkat hanya dihitung + jenisnya (minor type); tanpa nama dan alamat.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct BluetoothInfo {
+    pub controller_present: bool,
+    pub powered: Option<bool>,
+    pub discoverable: Option<bool>,
+    pub chipset: Option<String>,
+    pub firmware: Option<String>,
+    pub transport: Option<String>,
+    pub vendor_id: Option<String>,
+    pub services: Vec<String>,
+    /// Jenis tiap perangkat tersambung, mis. "Headphones" (`None` = tidak dilaporkan).
+    pub connected_types: Vec<Option<String>>,
+    pub paired_not_connected: u32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ReceptacleStatus {
+    /// Kosong — BUKAN tanda kerusakan.
+    Empty,
+    Connected,
+    Unknown,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ThunderboltReceptacle {
+    pub id: Option<u32>,
+    pub status: ReceptacleStatus,
+    /// Kecepatan dalam Gb/s; `speed_is_max` = "Up to …" (kemampuan, bukan tautan aktif).
+    pub speed_gbps: Option<f64>,
+    pub speed_is_max: bool,
+    pub link_status: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ThunderboltBus {
+    pub index: Option<u32>,
+    pub receptacles: Vec<ThunderboltReceptacle>,
+    /// Jumlah perangkat Thunderbolt yang tersambung di bus ini (tanpa nama).
+    pub connected_devices: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UsbDevice {
+    /// `Some(true)` = komponen bawaan (mis. lewat Apple T2), `Some(false)` = eksternal.
+    pub built_in: Option<bool>,
+    pub link_speed: Option<String>,
+    pub power: Option<String>,
+    pub vendor_id: Option<String>,
+    pub location_id: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UsbController {
+    /// Versi dari label bus macOS, mis. "3.1" untuk "USB 3.1 Bus".
+    pub usb_version: Option<String>,
+    pub built_in: Option<bool>,
+    /// Bus internal Apple (T2) — berisi komponen bawaan, bukan port fisik.
+    pub apple_internal: bool,
+    pub location_id: Option<String>,
+    pub devices: Vec<UsbDevice>,
+}
+
+/// Port USB/Thunderbolt. `None` = bagian itu tidak ada di output macOS.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct PortsInfo {
+    pub thunderbolt: Option<Vec<ThunderboltBus>>,
+    pub usb: Option<Vec<UsbController>>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum AudioTransport {
+    BuiltIn,
+    Bluetooth,
+    Usb,
+    Hdmi,
+    DisplayPort,
+    AirPlay,
+    Virtual,
+    Unknown,
+}
+
+/// Perangkat audio (`system_profiler SPAudioDataType`). Nama hanya diisi untuk
+/// perangkat bawaan Apple (mis. "MacBook Pro Speakers"); lainnya hanya transport.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AudioDevice {
+    pub builtin_name: Option<String>,
+    pub transport: AudioTransport,
+    pub output_channels: Option<u32>,
+    pub input_channels: Option<u32>,
+    pub default_output: bool,
+    pub default_input: bool,
+    pub default_system_output: bool,
+}
+
+/// Bukti hardware Touch Bar (bukan nama model). `None` = tidak bisa diperiksa.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct TouchBarEvidence {
+    /// Perangkat IORegistry "Touch Bar Display" (Intel T1/T2).
+    pub display_device: Option<bool>,
+    /// Perangkat IORegistry "Touch Bar Backlight" (Intel T1/T2).
+    pub backlight_device: Option<bool>,
+    /// Proses sistem TouchBarServer sedang berjalan.
+    pub server_running: Option<bool>,
 }

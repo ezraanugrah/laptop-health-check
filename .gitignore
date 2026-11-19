@@ -25,3 +25,6 @@ dist-ssr
 
 # TypeScript incremental build info
 *.tsbuildinfo
+
+# Paket distribusi portable (hasil build, bukan source)
+/portable/

@@ -15,6 +15,15 @@ import { useI18n } from "../lib/preferences";
 import { translate } from "../i18n/translate";
 import { DisplayTest } from "../components/interactive/DisplayTest";
 import { KeyboardTest } from "../components/interactive/KeyboardTest";
+import { MediaTest } from "../components/interactive/MediaTest";
+import { TrackpadTest } from "../components/interactive/TrackpadTest";
+import { SpeakerTest } from "../components/interactive/SpeakerTest";
+import { TouchBarTest } from "../components/interactive/TouchBarTest";
+import { WifiTest } from "../components/interactive/WifiTest";
+import { BluetoothTest } from "../components/interactive/BluetoothTest";
+import { PortsTest } from "../components/interactive/PortsTest";
+import { noTouchBarResult } from "../lib/interactive/touchbar";
+import type { AudioOutputs, TouchBarPresence } from "../types/peripherals";
 
 interface Props {
   results: InteractiveResults;
@@ -26,13 +35,25 @@ export function InteractiveTestsPage({ results, onResult }: Props) {
   const [running, setRunning] = useState<InteractiveTestId | null>(null);
   const [profile, setProfile] = useState<DeviceProfile | null>(null);
   const [gate, setGate] = useState<GateStatus | null>(null);
+  const [touchBar, setTouchBar] = useState<TouchBarPresence | null>(null);
+  const [audio, setAudio] = useState<AudioOutputs | null>(null);
   const desktop = inDesktopApp();
 
   useEffect(() => {
     if (!desktop) return;
     api.getDeviceProfile().then(setProfile).catch(() => setProfile(null));
     api.mediaGateStatus().then(setGate).catch(() => setGate(null));
+    // Bukti hardware Touch Bar (IORegistry/TouchBarServer), bukan nama model.
+    api.getTouchBarPresence().then(setTouchBar).catch(() => setTouchBar(null));
+    // Keluaran audio default (untuk peringatan Tes Speaker bila bukan speaker bawaan).
+    api.getAudioOutputs().then(setAudio).catch(() => setAudio(null));
   }, [desktop]);
+
+  // Mac tanpa Touch Bar (bukti hardware, bukan eksperimental) → "Tidak tersedia", bukan "Belum diuji".
+  const touchBarAbsent = touchBar?.presence === "absent" && !touchBar.experimental;
+  useEffect(() => {
+    if (touchBarAbsent && !results.touchBar) onResult(noTouchBarResult());
+  }, [touchBarAbsent, results.touchBar, onResult]);
 
   // Log verifikasi selalu dalam Bahasa Indonesia (konsisten untuk audit), apa pun bahasa UI.
   const logResult = (result: InteractiveResult) => {
@@ -64,10 +85,7 @@ export function InteractiveTestsPage({ results, onResult }: Props) {
 
   return (
     <div className="mx-auto max-w-6xl space-y-5 p-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">{t("tests.title")}</h1>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{t("tests.subtitle")}</p>
-      </header>
+      <p className="text-sm text-slate-600 dark:text-slate-400">{t("tests.subtitle")}</p>
 
       <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm dark:border-slate-800 dark:bg-slate-900">
         <span className="font-medium">{summaryText(summary, t)}</span>
@@ -102,7 +120,7 @@ export function InteractiveTestsPage({ results, onResult }: Props) {
             id={id}
             result={results[id]}
             onStart={() => setRunning(id)}
-            blockedReason={id === "touchBar" && profile?.touchBar === false ? t("tests.noTouchBar") : undefined}
+            blockedReason={id === "touchBar" && touchBarAbsent ? t("tests.noTouchBar") : undefined}
           />
         ))}
       </div>
@@ -124,6 +142,26 @@ export function InteractiveTestsPage({ results, onResult }: Props) {
             })
           }
         />
+      )}
+      {running === "trackpad" && <TrackpadTest onFinish={finish} onCancel={(r) => cancel("trackpad", r)} />}
+      {running === "speakers" && (
+        <SpeakerTest
+          output={{ defaultIsBuiltIn: audio?.defaultOutput ? audio.defaultOutput.transport === "builtIn" : null }}
+          onFinish={finish}
+          onCancel={(r) => cancel("speakers", r)}
+        />
+      )}
+      {running === "touchBar" && (
+        <TouchBarTest presence={touchBar} onFinish={finish} onCancel={(r) => cancel("touchBar", r)} />
+      )}
+      {running === "wifi" && <WifiTest onFinish={finish} onCancel={(r) => cancel("wifi", r)} />}
+      {running === "bluetooth" && <BluetoothTest onFinish={finish} onCancel={(r) => cancel("bluetooth", r)} />}
+      {running === "ports" && <PortsTest onFinish={finish} onCancel={(r) => cancel("ports", r)} />}
+      {running === "camera" && (
+        <MediaTest kind="camera" onFinish={finish} onCancel={(r) => cancel("camera", r)} />
+      )}
+      {running === "microphone" && (
+        <MediaTest kind="microphone" onFinish={finish} onCancel={(r) => cancel("microphone", r)} />
       )}
     </div>
   );

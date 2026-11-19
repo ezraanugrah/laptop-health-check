@@ -13,9 +13,12 @@ mod commands;
 mod diagnostics;
 mod media_gate;
 mod media_window;
+mod peripherals;
 mod platform;
+mod report_export;
 mod selfcheck;
 mod settings;
+mod touchbar;
 
 use media_gate::{Decision, MediaGate, RequestKind};
 use media_window::{MEDIA_WINDOW_LABEL, MediaWindow};
@@ -75,6 +78,16 @@ pub fn run() {
             commands::save_settings,
             commands::get_launch_mode,
             commands::report_selfcheck,
+            peripherals::get_wifi_status,
+            peripherals::get_bluetooth_status,
+            peripherals::get_ports_snapshot,
+            peripherals::get_audio_outputs,
+            peripherals::get_touch_bar_presence,
+            report_export::export_report_json,
+            report_export::print_report,
+            touchbar::touchbar_test_start,
+            touchbar::touchbar_test_stop,
+            touchbar::touchbar_test_status,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -18,7 +18,8 @@ export const TEST_ORDER: InteractiveTestId[] = [
   "speakers",
   "microphone",
   "camera",
-  "wireless",
+  "wifi",
+  "bluetooth",
   "ports",
 ];
 
@@ -46,43 +47,49 @@ export const TEST_META: Record<InteractiveTestId, TestMeta> = {
   trackpad: {
     title: "test.trackpad.title",
     description: "test.trackpad.description",
-    implemented: false,
+    implemented: true,
     milestone: "3.4",
   },
   touchBar: {
     title: "test.touchBar.title",
     description: "test.touchBar.description",
-    implemented: false,
+    implemented: true,
     milestone: "3.3",
   },
   speakers: {
     title: "test.speakers.title",
     description: "test.speakers.description",
-    implemented: false,
+    implemented: true,
     milestone: "3.5",
   },
   microphone: {
     title: "test.microphone.title",
     description: "test.microphone.description",
-    implemented: false,
+    implemented: true,
     milestone: "3.5",
   },
   camera: {
     title: "test.camera.title",
     description: "test.camera.description",
-    implemented: false,
+    implemented: true,
     milestone: "3.6",
   },
-  wireless: {
-    title: "test.wireless.title",
-    description: "test.wireless.description",
-    implemented: false,
+  wifi: {
+    title: "test.wifi.title",
+    description: "test.wifi.description",
+    implemented: true,
+    milestone: "3.7",
+  },
+  bluetooth: {
+    title: "test.bluetooth.title",
+    description: "test.bluetooth.description",
+    implemented: true,
     milestone: "3.7",
   },
   ports: {
     title: "test.ports.title",
     description: "test.ports.description",
-    implemented: false,
+    implemented: true,
     milestone: "3.8",
   },
 };

@@ -18,3 +18,15 @@ html.dark {
 body {
   @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100;
 }
+
+/* Cetak/PDF laporan: kertas putih, teks gelap, apa pun tema aktif. */
+@media print {
+  html,
+  body {
+    background: #fff !important;
+    color: #0f172a !important;
+  }
+  @page {
+    margin: 14mm;
+  }
+}
