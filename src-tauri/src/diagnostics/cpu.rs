@@ -1,4 +1,8 @@
-//! Penilaian CPU: informasi & status termal (*throttling*).
+//! Penilaian CPU: informasi & status termal (*throttling*), lintas OS.
+//!
+//! macOS: `CPU_Speed_Limit` & catatan peringatan dari pmset.
+//! Windows: *passive limit* zona termal (pembatasan termal) — batas frekuensi
+//! karena pengaturan daya hanya dicatat sebagai informasi.
 
 use super::findings::Findings;
 use super::format::{format_ghz, format_percent};
@@ -8,6 +12,8 @@ use crate::platform::ProbeError;
 
 /// Batas kecepatan CPU di bawah nilai ini (%) = kritis.
 pub const SPEED_LIMIT_CRITICAL_BELOW: u32 = 50;
+/// Batas pendinginan pasif di bawah nilai ini (%) = kritis.
+pub const PASSIVE_LIMIT_CRITICAL_BELOW: u32 = 50;
 
 pub fn evaluate(data: &Result<CpuInfo, ProbeError>) -> CheckResult {
     match data {
@@ -25,13 +31,39 @@ pub fn assess(info: &CpuInfo) -> CheckResult {
 
     let mut core_evidence = false;
     match &info.thermal {
-        None => f.info("Status termal CPU tidak dapat dibaca (pmset)."),
+        None => f.info("Status termal CPU tidak dapat dibaca dari OS."),
         Some(t) => {
             if let (Some(available), Some(logical)) = (t.available_cpus, info.logical_cores)
                 && available < logical
             {
                 f.critical(format!(
-                    "macOS menonaktifkan sebagian CPU karena kondisi termal ({available} dari {logical} aktif)."
+                    "OS menonaktifkan sebagian CPU karena kondisi termal ({available} dari {logical} aktif)."
+                ));
+            }
+            match t.passive_limit_percent {
+                Some(limit) if limit < PASSIVE_LIMIT_CRITICAL_BELOW => {
+                    core_evidence = true;
+                    f.critical(format!(
+                        "Pendinginan pasif membatasi CPU ke {limit}% (pembatasan termal berat){load_text}."
+                    ));
+                }
+                Some(limit) if limit < 100 => {
+                    core_evidence = true;
+                    f.warning(format!(
+                        "Pendinginan pasif membatasi CPU ke {limit}% (pembatasan termal){load_text}."
+                    ));
+                }
+                Some(_) => {
+                    core_evidence = true;
+                    f.ok("Tidak ada pembatasan termal pada zona termal (passive limit 100%).");
+                }
+                None => {}
+            }
+            if let (Some(limit), Some(max)) = (t.limit_mhz, t.max_mhz)
+                && limit < max
+            {
+                f.info(format!(
+                    "Frekuensi maksimum CPU dibatasi ke {limit} dari {max} MHz. Bisa karena pengaturan daya (mode hemat/baterai), sehingga tidak dinilai sebagai masalah termal."
                 ));
             }
             match t.speed_limit_percent {
@@ -55,15 +87,15 @@ pub fn assess(info: &CpuInfo) -> CheckResult {
                 f.warning(format!("Penjadwal CPU dibatasi ke {limit}%."));
             }
             match t.thermal_warning_recorded {
-                Some(true) => f.warning("macOS mencatat peringatan termal."),
+                Some(true) => f.warning("OS mencatat peringatan termal."),
                 Some(false) => {
                     core_evidence = true;
-                    f.ok("macOS tidak mencatat peringatan termal.");
+                    f.ok("OS tidak mencatat peringatan termal.");
                 }
                 None => {}
             }
             if t.performance_warning_recorded == Some(true) {
-                f.warning("macOS mencatat peringatan performa.");
+                f.warning("OS mencatat peringatan performa.");
             }
         }
     }
@@ -109,14 +141,23 @@ pub fn assess(info: &CpuInfo) -> CheckResult {
                 if w { "Tercatat" } else { "Tidak tercatat" },
             ));
         }
+        if let Some(limit) = t.passive_limit_percent {
+            metrics.push(Metric::new("Batas pendinginan pasif", format!("{limit}%")));
+        }
+        if let (Some(limit), Some(max)) = (t.limit_mhz, t.max_mhz) {
+            metrics.push(Metric::new(
+                "Batas frekuensi",
+                format!("{limit} / {max} MHz"),
+            ));
+        }
+        if let Some(p) = t.performance_limit_percent {
+            metrics.push(Metric::new("Pembatasan kinerja", format!("{p}%")));
+        }
     }
 
     CheckResult::new(CheckId::Cpu, status, summary)
         .with_reasons(f.into_reasons())
         .with_metrics(metrics)
-        .with_notes(vec![
-            "Status termal dibaca dari catatan macOS (pmset). Uji beban CPU belum tersedia di versi ini.".into(),
-        ])
 }
 
 #[cfg(test)]
@@ -182,5 +223,47 @@ mod tests {
         let r = assess(&info);
         let core = r.metrics.iter().find(|m| m.label == "Core").unwrap();
         assert_eq!(core.value, "8 fisik / 8 logis · 4 performa + 4 efisiensi");
+    }
+
+    /// Data bergaya Windows (contoh format, BUKAN data perangkat asli).
+    fn win(passive: Option<u32>, limit_mhz: Option<u32>) -> CpuInfo {
+        CpuInfo {
+            logical_cores: Some(8),
+            load_percent: Some(12.0),
+            thermal: Some(ThermalStatus {
+                passive_limit_percent: passive,
+                max_mhz: Some(2400),
+                limit_mhz,
+                performance_limit_percent: Some(0),
+                ..Default::default()
+            }),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn windows_passive_limit_boundaries() {
+        assert_eq!(assess(&win(Some(100), None)).status, Status::Healthy);
+        assert_eq!(assess(&win(Some(99), None)).status, Status::Warning);
+        assert_eq!(assess(&win(Some(50), None)).status, Status::Warning);
+        assert_eq!(assess(&win(Some(49), None)).status, Status::Critical);
+    }
+
+    #[test]
+    fn windows_power_limited_frequency_is_info_only() {
+        let r = assess(&win(Some(100), Some(1200)));
+        assert_eq!(r.status, Status::Healthy);
+        assert!(r.reasons.iter().any(|x| x.text.contains("pengaturan daya")));
+        let m = r
+            .metrics
+            .iter()
+            .find(|m| m.label == "Batas frekuensi")
+            .unwrap();
+        assert_eq!(m.value, "1200 / 2400 MHz");
+    }
+
+    #[test]
+    fn windows_without_passive_limit_is_unknown() {
+        assert_eq!(assess(&win(None, Some(2400))).status, Status::Unknown);
     }
 }

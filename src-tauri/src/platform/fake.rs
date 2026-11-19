@@ -3,10 +3,11 @@
 
 use super::{Platform, ProbeError};
 use crate::diagnostics::raw::{
-    BatteryInfo, CpuInfo, DiskInfo, FanReading, GpuInfo, MemoryInfo, MemoryModule, MemoryPressure,
-    OwnershipInfo, SensorKind, SensorReadings, TemperatureReading, ThermalStatus, VolumeSpace,
+    BatteryInfo, CapacityUnit, CpuInfo, DiskInfo, FanReading, GpuInfo, MemoryInfo, MemoryModule,
+    MemoryPressure, OwnershipInfo, SensorKind, SensorReadings, SystemOverview, TemperatureReading,
+    ThermalStatus, VolumeSpace,
 };
-use crate::diagnostics::types::{CheckId, SystemOverview};
+use crate::diagnostics::types::{CheckId, PlatformSupport, SupportLevel};
 
 const GIB: u64 = 1024 * 1024 * 1024;
 
@@ -24,13 +25,15 @@ impl Platform for Healthy {
             cpu: Some("Test CPU".into()),
             logical_cpus: Some(8),
             memory_bytes: Some(16 * GIB),
+            ..Default::default()
         })
     }
 
     fn battery() -> Result<Option<BatteryInfo>, ProbeError> {
         Ok(Some(BatteryInfo {
-            design_capacity_mah: Some(5000),
-            full_charge_capacity_mah: Some(4600),
+            design_capacity: Some(5000),
+            full_charge_capacity: Some(4600),
+            capacity_unit: Some(CapacityUnit::MilliampHours),
             cycle_count: Some(100),
             design_cycle_count: Some(1000),
             temperature_c: Some(30.0),
@@ -39,7 +42,7 @@ impl Platform for Healthy {
             external_power: Some(true),
             permanent_failure: Some(false),
             os_condition: Some("Good".into()),
-            os_max_capacity_percent: None,
+            ..Default::default()
         }))
     }
 
@@ -57,6 +60,7 @@ impl Platform for Healthy {
                 free_bytes: 200_000_000_000,
                 total_bytes: 500_000_000_000,
             }),
+            ..Default::default()
         }])
     }
 
@@ -78,6 +82,7 @@ impl Platform for Healthy {
                 status: Some("ok".into()),
             }],
             upgradeable: Some(false),
+            ..Default::default()
         })
     }
 
@@ -96,6 +101,7 @@ impl Platform for Healthy {
                 available_cpus: Some(8),
                 thermal_warning_recorded: Some(false),
                 performance_warning_recorded: Some(false),
+                ..Default::default()
             }),
         })
     }
@@ -126,18 +132,17 @@ impl Platform for Healthy {
             model: Some("Test GPU".into()),
             vendor: Some("Intel".into()),
             integrated: Some(true),
-            vram: None,
-            metal_support: Some("Metal 3".into()),
-            cores: None,
-            displays: vec![],
+            graphics_api: Some("Metal 3".into()),
+            ..Default::default()
         }])
     }
 
     fn ownership() -> Result<OwnershipInfo, ProbeError> {
         Ok(OwnershipInfo {
             activation_lock_enabled: Some(false),
-            dep_enrolled: Some(false),
+            provisioning_enrolled: Some(false),
             mdm_enrolled: Some(false),
+            ..Default::default()
         })
     }
 
@@ -147,6 +152,17 @@ impl Platform for Healthy {
 
     fn sources(_check: CheckId) -> &'static [&'static str] {
         &["sumber uji"]
+    }
+
+    fn notes(_check: CheckId) -> &'static [&'static str] {
+        &["catatan uji"]
+    }
+
+    fn support() -> PlatformSupport {
+        PlatformSupport {
+            level: SupportLevel::Verified,
+            note: "uji".into(),
+        }
     }
 }
 
@@ -187,5 +203,14 @@ impl Platform for Failing {
     }
     fn sources(_check: CheckId) -> &'static [&'static str] {
         &[]
+    }
+    fn notes(_check: CheckId) -> &'static [&'static str] {
+        &[]
+    }
+    fn support() -> PlatformSupport {
+        PlatformSupport {
+            level: SupportLevel::Preview,
+            note: "uji".into(),
+        }
     }
 }

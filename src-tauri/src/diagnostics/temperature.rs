@@ -1,4 +1,4 @@
-//! Penilaian temperatur (CPU, GPU, baterai).
+//! Penilaian temperatur (CPU, GPU, baterai, zona termal ACPI), lintas OS.
 
 use super::findings::Findings;
 use super::format::{format_celsius, format_percent};
@@ -17,6 +17,9 @@ pub const CPU_LOADED_CRITICAL_C: f64 = 105.0;
 pub const GPU_LIGHT_WARNING_C: f64 = 85.0;
 /// Ambang suhu baterai (°C).
 pub const BATTERY_WARNING_C: f64 = 45.0;
+/// Ambang zona termal ACPI (°C). Konservatif karena maknanya berbeda antar-OEM.
+pub const ZONE_WARNING_C: f64 = 95.0;
+pub const ZONE_CRITICAL_C: f64 = 105.0;
 
 pub fn evaluate(
     data: &Result<SensorReadings, ProbeError>,
@@ -30,16 +33,9 @@ pub fn evaluate(
             if let Some(t) = battery_temp {
                 r.metrics.push(Metric::new("Baterai", format_celsius(t)));
             }
-            r.with_notes(notes())
+            r
         }
     }
-}
-
-fn notes() -> Vec<String> {
-    vec![
-        "Dibaca dari SMC secara read-only. Nama sensor SMC tidak didokumentasikan Apple; hanya sensor yang dikenali dan bernilai wajar yang ditampilkan.".into(),
-        "Pemetaan sensor Apple Silicon belum diverifikasi di perangkat asli.".into(),
-    ]
 }
 
 fn stats(readings: &SensorReadings, kind: SensorKind) -> Option<(f64, f64, usize)> {
@@ -88,7 +84,26 @@ pub fn assess(
             "Suhu CPU tertinggi {} — normal untuk {load_text}.",
             format_celsius(max)
         )),
-        None => f.info("Tidak ada sensor suhu CPU yang dikenali di perangkat ini."),
+        None => {
+            f.info("Suhu die CPU tidak tersedia dari sensor yang dikenali di perangkat/OS ini.")
+        }
+    }
+
+    let zones = stats(readings, SensorKind::ThermalZone);
+    match zones {
+        Some((max, _, _)) if max >= ZONE_CRITICAL_C => f.critical(format!(
+            "Suhu zona termal sistem {} (≥{ZONE_CRITICAL_C} °C). Nilai ini bukan suhu die CPU.",
+            format_celsius(max)
+        )),
+        Some((max, _, _)) if max >= ZONE_WARNING_C => f.warning(format!(
+            "Suhu zona termal sistem {} (≥{ZONE_WARNING_C} °C). Nilai ini bukan suhu die CPU.",
+            format_celsius(max)
+        )),
+        Some((max, _, _)) => f.ok(format!(
+            "Suhu zona termal sistem tertinggi {} — dalam batas wajar. Nilai ini bukan suhu die CPU.",
+            format_celsius(max)
+        )),
+        None => {}
     }
 
     let gpu = stats(readings, SensorKind::Gpu);
@@ -111,12 +126,12 @@ pub fn assess(
         ));
     }
 
-    let status = f.status(cpu.is_some());
+    let status = f.status(cpu.is_some() || zones.is_some());
     let summary = match status {
         Status::Healthy => "Suhu komponen dalam batas normal.",
         Status::Warning => "Suhu komponen tinggi — perlu perhatian.",
         Status::Critical => "Suhu komponen sangat tinggi.",
-        _ => "Suhu CPU tidak dapat dibaca.",
+        _ => "Suhu komponen tidak dapat dibaca.",
     };
 
     let mut metrics = Vec::new();
@@ -133,6 +148,12 @@ pub fn assess(
             format!("{} ({n} sensor)", format_celsius(max)),
         ));
     }
+    if let Some((max, _, n)) = zones {
+        metrics.push(Metric::new(
+            "Zona termal sistem (maks)",
+            format!("{} ({n} zona)", format_celsius(max)),
+        ));
+    }
     if let Some(t) = battery {
         metrics.push(Metric::new("Baterai", format_celsius(t)));
     }
@@ -143,7 +164,6 @@ pub fn assess(
     CheckResult::new(CheckId::Temperature, status, summary)
         .with_reasons(f.into_reasons())
         .with_metrics(metrics)
-        .with_notes(notes())
 }
 
 #[cfg(test)]
@@ -257,5 +277,48 @@ mod tests {
         assert_eq!(r.metrics[0].label, "CPU tertinggi");
         assert_eq!(r.metrics[0].value, "60.0 °C");
         assert_eq!(r.metrics[1].value, "55.0 °C (2 sensor)");
+    }
+
+    /// Zona termal ACPI bergaya Windows (contoh format, BUKAN data perangkat asli).
+    fn zones(values: &[f64]) -> SensorReadings {
+        SensorReadings {
+            temperatures: values
+                .iter()
+                .map(|v| TemperatureReading {
+                    key: "\\_TZ.THRM".into(),
+                    kind: SensorKind::ThermalZone,
+                    celsius: *v,
+                })
+                .collect(),
+            fans: None,
+        }
+    }
+
+    #[test]
+    fn thermal_zone_boundaries_without_cpu_sensor() {
+        assert_eq!(assess(&zones(&[94.9]), None, None).status, Status::Healthy);
+        assert_eq!(assess(&zones(&[95.0]), None, None).status, Status::Warning);
+        assert_eq!(assess(&zones(&[104.9]), None, None).status, Status::Warning);
+        assert_eq!(
+            assess(&zones(&[105.0]), None, None).status,
+            Status::Critical
+        );
+    }
+
+    #[test]
+    fn thermal_zone_is_never_labelled_as_cpu() {
+        let r = assess(&zones(&[48.0, 52.0]), None, Some(10.0));
+        assert!(
+            r.reasons
+                .iter()
+                .any(|x| x.text.contains("bukan suhu die CPU"))
+        );
+        assert!(r.metrics.iter().all(|m| !m.label.starts_with("CPU")));
+        let z = r
+            .metrics
+            .iter()
+            .find(|m| m.label == "Zona termal sistem (maks)")
+            .unwrap();
+        assert_eq!(z.value, "52.0 °C (2 zona)");
     }
 }

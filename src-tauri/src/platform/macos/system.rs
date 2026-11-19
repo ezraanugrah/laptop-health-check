@@ -3,7 +3,7 @@
 use super::bin::{IOREG, SW_VERS};
 use super::command::{run, sysctl};
 use super::parse::{ioreg_string, non_empty};
-use crate::diagnostics::types::SystemOverview;
+use crate::diagnostics::raw::SystemOverview;
 use crate::platform::ProbeError;
 
 pub fn probe() -> Result<SystemOverview, ProbeError> {
@@ -18,6 +18,8 @@ pub fn probe() -> Result<SystemOverview, ProbeError> {
         cpu: sysctl("machdep.cpu.brand_string").ok(),
         logical_cpus: std::thread::available_parallelism().ok().map(|n| n.get()),
         memory_bytes: sysctl("hw.memsize").ok().and_then(|s| s.parse().ok()),
+        // Field khusus Windows (edisi, firmware, lifecycle OS) tidak diisi di macOS.
+        ..Default::default()
     })
 }
 

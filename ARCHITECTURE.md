@@ -79,13 +79,34 @@ Tipe ada di `src-tauri/src/diagnostics/types.rs` dan dicerminkan di `src/types/d
 - `CheckId`: `system | battery | storage | memory | cpu | temperature | fans | gpu | ownership`
 - `Status`: `healthy | warning | critical | unknown | notApplicable`
   - Label UI: **Sehat**, **Peringatan**, **Kritis**, **Tidak diketahui**, **Tidak berlaku**.
-- `CheckResult { id, status, summary, reasons: Reason[], metrics: Metric[], sources: string[], notes: string[] }`
+- `CheckCategory` (Fase 3, D1/D3):
+  - `coreHardware`: baterai, SSD/HDD, RAM, CPU.
+  - `supplementaryHardware`: temperatur, kipas, GPU.
+  - `deviceSecurity`: sistem (termasuk dukungan keamanan OS) dan kepemilikan. Tidak memengaruhi kesimpulan kesehatan hardware.
+- `CheckResult { id, category, status, summary, reasons: Reason[], metrics: Metric[], sources: string[], notes: string[] }`
   - `Reason { level: critical | warning | ok | info, text }`: bukti di balik status.
-  - `sources`: sumber data yang dipakai (ditampilkan di kartu).
-  - `notes`: keterbatasan deteksi (wajib untuk Activation Lock & MDM).
-- `DiagnosticsReport { overall, generatedAt, durationMs, checks }`
-- **Status keseluruhan** = status terburuk dengan urutan `healthy < unknown < warning < critical`. Status `notApplicable` tidak ikut dihitung. Jika ada satu saja yang `unknown` dan tidak ada yang lebih buruk, hasilnya `unknown`, bukan `healthy`.
-- **Aturan `Healthy`** (`Findings::status(has_core_evidence)`): status Sehat hanya diberikan bila ada bukti inti. Contohnya kapasitas baterai terukur, SMART "Verified", atau sensor suhu CPU terbaca.
+  - `Metric { label, value, experimental }`: `experimental: true` diberi label di UI dan **tidak pernah mengubah status** (D5).
+  - `sources` dan `notes` disediakan **lapisan platform** (`Platform::sources`, `Platform::notes`), supaya teks keterbatasan sesuai OS.
+- `DiagnosticsReport { hardware: HardwareSummary, generatedAt, durationMs, checks }`
+- **`HardwareSummary { status, measured, total, missingCore, missingSupplementary }`** (`hardware_summary`). Status ditentukan dengan urutan berikut:
+  1. Ada Kritis → **Kritis**.
+  2. Selain itu, ada Peringatan → **Peringatan**. Temuan tetap ditampilkan walau data belum lengkap.
+  3. Selain itu, ada pemeriksaan inti yang Tidak diketahui → **Pemeriksaan belum lengkap** (`incomplete`). Tidak pernah disimpulkan sehat.
+  4. Selain itu → **Sehat**. Pemeriksaan pelengkap yang tidak terukur hanya dicatat di cakupan.
+  - `notApplicable` dihitung sebagai terukur.
+- `AppInfo.support: PlatformSupport { level: verified | preview, note }` (D7):
+  - macOS Intel = `verified`.
+  - Apple Silicon dan Windows = `preview`, dan UI menampilkan banner pratinjau.
+- **Aturan `Healthy`** (`Findings::status(has_core_evidence)`): status Sehat hanya diberikan bila ada bukti inti. Contohnya kapasitas baterai terukur, SMART "Verified", HealthStatus disk "Healthy", atau sensor suhu terbaca.
+- **Model mentah lintas OS** (`raw.rs`): field khusus satu OS dibiarkan `None` di OS lain. Contohnya:
+  - `CapacityUnit`: mAh di macOS, mWh di Windows.
+  - Untuk disk: `DiskHealth` dan `predicted_failure`.
+  - Untuk memori: `memory_load_percent` dan `commit_*`.
+  - Untuk termal: `passive_limit_percent`, dan `SensorKind::ThermalZone` (bukan suhu die CPU).
+  - Untuk GPU: `graphics_api` (Metal/Direct3D) dan `device_problem_code`.
+  - Untuk kepemilikan: `OwnershipFamily` (Apple/Windows), `directory_join`, dan `os_activated`.
+  - Lifecycle OS: `OsSupport`.
+  - Tidak ada field untuk nama organisasi, tenant, domain, UPN, nama komputer, maupun nama pengguna (D4).
 
 ## 5. Abstraksi platform
 
@@ -101,6 +122,8 @@ pub trait Platform {
     fn ownership() -> Result<OwnershipInfo, ProbeError>;
     fn serial_number() -> Result<Option<String>, ProbeError>; // opt-in
     fn sources(check: CheckId) -> &'static [&'static str];
+    fn notes(check: CheckId) -> &'static [&'static str];     // keterbatasan per OS
+    fn support() -> PlatformSupport;                         // verified / preview
 }
 ```
 

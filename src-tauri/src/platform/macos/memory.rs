@@ -56,6 +56,8 @@ pub fn assemble(
         memory_type,
         modules,
         upgradeable,
+        // Beban/commit/log error memori: khusus Windows.
+        ..Default::default()
     }
 }
 

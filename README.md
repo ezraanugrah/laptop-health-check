@@ -15,6 +15,8 @@ Target: macOS (Intel & Apple Silicon) dan Windows 10/11 · berjalan 100% offline
 | [ROADMAP.md](ROADMAP.md) | Fase pengembangan |
 | [TASKS.md](TASKS.md) | Daftar pekerjaan per fase |
 | [CLAUDE.md](CLAUDE.md) | Panduan & aturan kerja untuk Claude Code |
+| [docs/GIT-WORKFLOW.md](docs/GIT-WORKFLOW.md) | Alur Git/PR, aturan Claude, panduan GitHub Rulesets |
+| [docs/FASE3-WINDOWS-PRD.md](docs/FASE3-WINDOWS-PRD.md) | PRD teknis & rencana Fase 3 (Windows) |
 
 ## Prasyarat
 

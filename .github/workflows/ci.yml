@@ -1,0 +1,104 @@
+# CI Laptop Health Check
+#
+# Membuktikan: kompilasi (L0), test parser & aturan penilaian (L1), dan smoke
+# test diagnostik di VM runner (L2). TIDAK membuktikan kompatibilitas hardware
+# asli: runner Windows adalah VM Windows Server 2025 dan runner macOS adalah VM
+# tanpa baterai/sensor. Validasi hardware asli (L3–L5) dilakukan terpisah —
+# lihat docs/FASE3-WINDOWS-PRD.md §6.2.
+#
+# Keamanan: izin read-only, tanpa secret, action dipin ke commit SHA, tidak
+# membuat tag/release, dan tidak membuat/merge pull request.
+
+name: CI
+
+on:
+  push:
+    branches: ["feature/**", "fix/**"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  check:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows
+            os: windows-latest # Windows Server 2025 (VM) — bukan Windows 10/11 klien
+          - name: macos-intel
+            os: macos-15-intel # x86_64 (VM); tersedia sampai ±2027
+          - name: macos-arm64
+            os: macos-latest # arm64 (VM) — bukan bukti Apple Silicon asli
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@df2a88e9fe4098bad09cb42c3dec7187f15861fc # master
+        with:
+          toolchain: stable
+          components: clippy, rustfmt
+
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Install dependency npm
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test frontend
+        run: npm test
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: cargo fmt
+        working-directory: src-tauri
+        run: cargo fmt --check
+
+      - name: cargo clippy
+        working-directory: src-tauri
+        run: cargo clippy --all-targets --locked -- -D warnings
+
+      - name: cargo test
+        working-directory: src-tauri
+        run: cargo test --locked
+
+      - name: Smoke test diagnostik (data VM runner, BUKAN hardware asli)
+        working-directory: src-tauri
+        shell: bash
+        env:
+          LHC_REPORT_OUT: ${{ runner.temp }}/ci-${{ matrix.name }}-vm-report.json
+        run: cargo test --locked -- --ignored --exact diagnostics::tests::dump_real_report
+
+      - name: Unggah laporan VM
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ci-${{ matrix.name }}-vm-report
+          path: ${{ runner.temp }}/ci-${{ matrix.name }}-vm-report.json
+          retention-days: 14
+          if-no-files-found: warn

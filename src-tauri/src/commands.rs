@@ -26,6 +26,7 @@ pub fn get_app_info(app: tauri::AppHandle) -> AppInfo {
         version: info.version.to_string(),
         os: std::env::consts::OS.to_string(),
         arch: std::env::consts::ARCH.to_string(),
+        support: Current::support(),
     }
 }
 
@@ -37,8 +38,11 @@ pub async fn run_diagnostics() -> Result<DiagnosticsReport, String> {
         .map_err(|e| e.to_string())?;
     #[cfg(debug_assertions)]
     eprintln!(
-        "[ipc] run_diagnostics selesai dalam {} ms: {}",
+        "[ipc] run_diagnostics selesai dalam {} ms: hardware={:?} ({}/{} terukur) | {}",
         report.duration_ms,
+        report.hardware.status,
+        report.hardware.measured,
+        report.hardware.total,
         report
             .checks
             .iter()

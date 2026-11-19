@@ -3,8 +3,9 @@
 use super::{Platform, ProbeError};
 use crate::diagnostics::raw::{
     BatteryInfo, CpuInfo, DiskInfo, GpuInfo, MemoryInfo, OwnershipInfo, SensorReadings,
+    SystemOverview,
 };
-use crate::diagnostics::types::{CheckId, SystemOverview};
+use crate::diagnostics::types::{CheckId, PlatformSupport, SupportLevel};
 
 pub struct Unsupported;
 
@@ -45,5 +46,14 @@ impl Platform for Unsupported {
     }
     fn sources(_check: CheckId) -> &'static [&'static str] {
         &[]
+    }
+    fn notes(_check: CheckId) -> &'static [&'static str] {
+        &[]
+    }
+    fn support() -> PlatformSupport {
+        PlatformSupport {
+            level: SupportLevel::Preview,
+            note: "Sistem operasi ini belum didukung.".into(),
+        }
     }
 }
