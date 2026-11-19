@@ -19,25 +19,23 @@ pub fn evaluate(
     cpu_max_temp: Option<f64>,
     cpu_load: Option<f64>,
 ) -> CheckResult {
-    let note = "Dibaca dari SMC secara read-only; aplikasi tidak pernah mengubah kecepatan kipas."
-        .to_string();
     match data {
-        Err(err) => CheckResult::from_probe_error(CheckId::Fans, err).with_notes(vec![note]),
+        Err(err) => CheckResult::from_probe_error(CheckId::Fans, err),
         Ok(readings) => match &readings.fans {
+            // Data tidak tersedia ≠ tidak ada kipas: tetap "Tidak diketahui".
             None => CheckResult::new(CheckId::Fans, Status::Unknown, "Data kipas tidak tersedia.")
                 .with_reasons(vec![Reason::info(
-                    "SMC tidak menyediakan data kipas pada perangkat ini.",
-                )])
-                .with_notes(vec![note]),
+                    "OS/sensor tidak menyediakan data kipas pada perangkat ini.",
+                )]),
             Some(fans) if fans.is_empty() => CheckResult::new(
                 CheckId::Fans,
                 Status::NotApplicable,
                 "Perangkat ini tidak memiliki kipas.",
             )
             .with_reasons(vec![Reason::info(
-                "SMC melaporkan 0 kipas (normal untuk model tanpa kipas).",
+                "Sensor melaporkan 0 kipas (normal untuk model tanpa kipas).",
             )]),
-            Some(fans) => assess(fans, cpu_max_temp, cpu_load).with_notes(vec![note]),
+            Some(fans) => assess(fans, cpu_max_temp, cpu_load),
         },
     }
 }

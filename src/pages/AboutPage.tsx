@@ -5,6 +5,12 @@ export function AboutPage({ info }: { info: AppInfo | null }) {
     ? [
         ["Versi", info.version],
         ["Platform", `${info.os} (${info.arch})`],
+        [
+          "Status verifikasi",
+          info.support.level === "verified"
+            ? "Terverifikasi di hardware asli"
+            : "Pratinjau (belum diverifikasi)",
+        ],
       ]
     : [];
 

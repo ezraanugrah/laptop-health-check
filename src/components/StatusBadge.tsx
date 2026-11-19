@@ -1,5 +1,5 @@
-import type { Status } from "../types/diagnostics";
-import { STATUS_META, type Tone } from "../lib/status";
+import type { HardwareStatus, Status } from "../types/diagnostics";
+import { HARDWARE_STATUS_META, STATUS_META, type Tone } from "../lib/status";
 
 // Nama class ditulis utuh agar terdeteksi oleh Tailwind.
 const TONE_CLASSES: Record<Tone, string> = {
@@ -19,8 +19,7 @@ export const TONE_DOT: Record<Tone, string> = {
   muted: "bg-slate-300 dark:bg-slate-600",
 };
 
-export function StatusBadge({ status }: { status: Status }) {
-  const { label, tone } = STATUS_META[status];
+function Badge({ label, tone }: { label: string; tone: Tone }) {
   return (
     <span
       className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${TONE_CLASSES[tone]}`}
@@ -29,4 +28,12 @@ export function StatusBadge({ status }: { status: Status }) {
       {label}
     </span>
   );
+}
+
+export function StatusBadge({ status }: { status: Status }) {
+  return <Badge {...STATUS_META[status]} />;
+}
+
+export function HardwareStatusBadge({ status }: { status: HardwareStatus }) {
+  return <Badge {...HARDWARE_STATUS_META[status]} />;
 }

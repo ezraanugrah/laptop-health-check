@@ -8,12 +8,20 @@ Baca juga: `PRD.md` (apa & mengapa), `ARCHITECTURE.md` (bagaimana), `ROADMAP.md`
 
 ## Aturan kerja (wajib)
 
-- **Jangan commit, push, merge, atau mengubah repo GitHub tanpa izin eksplisit pemilik** untuk setiap tindakan. Pekerjaan fase dilakukan di branch fitur (mis. `feature/core-diagnostics-macos`); jangan merge ke `main` atau membuat release tanpa izin.
+- **Alur Git wajib mengikuti `docs/GIT-WORKFLOW.md`.** Ringkasnya:
+  - Commit dan push branch fitur hanya dengan izin eksplisit per aksi yang menyebut branch-nya. Tidak pernah push ke `main`.
+  - **Jangan pernah membuat Pull Request** (`gh pr create`, API, atau tombol aplikasi) kecuali pemilik menulis persetujuan eksplisit "buat PR" beserta branch sumber/tujuan. PR dibuat sebagai **Draft**.
+  - **Jangan pernah me-merge PR, mengaktifkan auto-merge, menghapus branch/tag, atau membuat release.** Merge ke `main` dilakukan pemilik di GitHub web setelah CI hijau.
+  - Tidak ada `reset --hard`, `push --force`, atau penulisan ulang riwayat yang sudah di-push.
+  - Setelah push, periksa ulang status PR tepat sebelum melapor, dan sebutkan bahwa status bisa berubah.
+  - Membaca status (`git status/log/fetch`, `gh ... view`, `gh api` GET) boleh tanpa izin.
 - **Jangan menghapus file penting** atau menimpa konfigurasi Git yang sudah benar. Penghapusan file harus seizin pemilik.
 - **Kerja per fase.** Jangan membangun seluruh fitur sekaligus. Di akhir setiap fase, laporkan hasilnya dan tunggu persetujuan.
 - **Disk mesin dev terbatas** (~25 GB kosong). Hindari dependency yang tidak perlu. Jangan memasang target Rust tambahan atau build rilis besar tanpa alasan. Bersihkan artefak sementara bila aman.
 - **Offline total.** Dilarang menambah kode/plugin jaringan, aset dari CDN, font web, telemetri, atau auto-update daring. Tanpa akun pengguna. Informasi perangkat tidak boleh dikirim tanpa persetujuan eksplisit.
 - **Hanya data nyata.** Jangan pernah menampilkan nilai contoh, simulasi, *mock*, atau tebakan sebagai hasil diagnosis. Data yang tidak bisa dibaca menjadi `Status::Unknown` (atau `NotApplicable` bila memang tidak berlaku) beserta alasannya. **Jangan anggap komponen sehat hanya karena datanya tidak tersedia**: `Healthy` butuh bukti inti (`Findings::status(has_core_evidence)`). Data palsu hanya boleh ada di test (`platform/fake.rs`, contoh format berlabel "BUKAN data perangkat asli").
+- **Data eksperimental** (mis. keausan SSD, log error memori, suhu GPU di Windows) wajib memakai `Metric::experimental`, hanya berupa informasi, dan **tidak boleh mengubah status** sebelum terverifikasi di hardware asli. Jangan menyebut sebuah platform atau modul "terverifikasi" sebelum lolos uji hardware asli (L3/L4). Hasil CI di VM bukan bukti hardware.
+- **Kesehatan hardware ≠ keamanan OS/kepemilikan.** Kategori `deviceSecurity` tidak memengaruhi `HardwareSummary`. Bila data inti tidak tersedia, hasilnya "Pemeriksaan belum lengkap", tidak pernah "Sehat".
 - **Read-only terhadap hardware.** Pembacaan SMC hanya memakai perintah baca; jangan pernah menambah perintah tulis SMC atau apa pun yang mengubah kipas, daya, atau konfigurasi sistem. SMC gagal = `Unknown` + kendala.
 - **Belum ada uji beban CPU** (stress test) sampai pemilik menyetujuinya.
 - **Activation Lock & MDM** wajib selalu menampilkan keterbatasan deteksi; hasilnya bukan jaminan bebas penguncian atau bukti kepemilikan.

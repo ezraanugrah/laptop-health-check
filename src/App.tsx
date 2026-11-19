@@ -18,7 +18,7 @@ function App() {
     <div className="flex h-screen overflow-hidden">
       <Sidebar active={page} onNavigate={setPage} version={appInfo?.version} />
       <main className="flex-1 overflow-y-auto">
-        {page === "dashboard" && <DashboardPage />}
+        {page === "dashboard" && <DashboardPage appInfo={appInfo} />}
         {page === "tests" && (
           <ComingSoonPage
             title="Tes Interaktif"

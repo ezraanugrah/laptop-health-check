@@ -1,5 +1,13 @@
 // Helper murni (tanpa React/Tauri) agar bisa dites dengan `node --test`.
-import type { CheckId, CheckResult, ReasonLevel, Status } from "../types/diagnostics";
+import type {
+  CheckCategory,
+  CheckId,
+  CheckResult,
+  HardwareStatus,
+  HardwareSummary,
+  ReasonLevel,
+  Status,
+} from "../types/diagnostics";
 
 export type Tone = "success" | "warning" | "danger" | "neutral" | "muted";
 
@@ -9,6 +17,13 @@ export const STATUS_META: Record<Status, { label: string; tone: Tone }> = {
   critical: { label: "Kritis", tone: "danger" },
   unknown: { label: "Tidak diketahui", tone: "neutral" },
   notApplicable: { label: "Tidak berlaku", tone: "muted" },
+};
+
+export const HARDWARE_STATUS_META: Record<HardwareStatus, { label: string; tone: Tone }> = {
+  healthy: { label: "Sehat", tone: "success" },
+  warning: { label: "Peringatan", tone: "warning" },
+  critical: { label: "Kritis", tone: "danger" },
+  incomplete: { label: "Pemeriksaan belum lengkap", tone: "neutral" },
 };
 
 export const REASON_TONE: Record<ReasonLevel, Tone> = {
@@ -31,7 +46,28 @@ export const CHECK_ORDER: CheckId[] = [
   "ownership",
 ];
 
-export const CHECK_TITLES: Record<CheckId, string> = {
+export const CATEGORY_ORDER: CheckCategory[] = [
+  "coreHardware",
+  "supplementaryHardware",
+  "deviceSecurity",
+];
+
+export const CATEGORY_META: Record<CheckCategory, { title: string; description: string }> = {
+  coreHardware: {
+    title: "Hardware inti",
+    description: "Bila salah satu tidak terbaca, hasil hardware dinyatakan belum lengkap.",
+  },
+  supplementaryHardware: {
+    title: "Hardware pelengkap",
+    description: "Boleh tidak terukur tanpa mengubah kesimpulan inti; tetap dicatat di cakupan.",
+  },
+  deviceSecurity: {
+    title: "Perangkat, keamanan OS & kepemilikan",
+    description: "Dinilai terpisah dan tidak memengaruhi kesimpulan kesehatan hardware.",
+  },
+};
+
+const BASE_TITLES: Record<CheckId, string> = {
   system: "Sistem",
   battery: "Baterai",
   storage: "SSD/HDD",
@@ -40,8 +76,52 @@ export const CHECK_TITLES: Record<CheckId, string> = {
   temperature: "Temperatur",
   fans: "Kipas",
   gpu: "GPU",
-  ownership: "Activation Lock & MDM",
+  ownership: "Kepemilikan & Manajemen",
 };
+
+/** Judul kartu sesuai OS (D2). `os` = `AppInfo.os` ("macos", "windows", ...). */
+export function checkTitle(id: CheckId, os?: string): string {
+  if (id === "ownership") {
+    if (os === "macos") return "Activation Lock & MDM";
+    if (os === "windows") return "Aktivasi & Manajemen Perangkat";
+  }
+  return BASE_TITLES[id];
+}
+
+/** Kategori pemeriksaan bila laporan belum tersedia (sama dengan backend). */
+export function categoryOf(id: CheckId): CheckCategory {
+  switch (id) {
+    case "battery":
+    case "storage":
+    case "memory":
+    case "cpu":
+      return "coreHardware";
+    case "temperature":
+    case "fans":
+    case "gpu":
+      return "supplementaryHardware";
+    default:
+      return "deviceSecurity";
+  }
+}
+
+/** Teks cakupan, mis. "7 dari 7 pemeriksaan hardware terukur". */
+export function coverageText(summary: HardwareSummary): string {
+  return `${summary.measured} dari ${summary.total} pemeriksaan hardware terukur`;
+}
+
+/** Daftar pemeriksaan yang belum terukur, dipisah inti/pelengkap. */
+export function missingText(summary: HardwareSummary, os?: string): string[] {
+  const list = (ids: CheckId[]) => ids.map((id) => checkTitle(id, os)).join(", ");
+  const lines: string[] = [];
+  if (summary.missingCore.length > 0) {
+    lines.push(`Data inti belum tersedia: ${list(summary.missingCore)}.`);
+  }
+  if (summary.missingSupplementary.length > 0) {
+    lines.push(`Pelengkap tidak terukur: ${list(summary.missingSupplementary)}.`);
+  }
+  return lines;
+}
 
 export function countByStatus(checks: CheckResult[]): Record<Status, number> {
   const counts: Record<Status, number> = {
@@ -53,15 +133,6 @@ export function countByStatus(checks: CheckResult[]): Record<Status, number> {
   };
   for (const check of checks) counts[check.status] += 1;
   return counts;
-}
-
-/** Ringkasan jumlah per status, hanya yang bernilai > 0. Contoh: "6 sehat · 2 peringatan". */
-export function summarizeCounts(counts: Record<Status, number>): string {
-  const order: Status[] = ["critical", "warning", "unknown", "healthy", "notApplicable"];
-  return order
-    .filter((s) => counts[s] > 0)
-    .map((s) => `${counts[s]} ${STATUS_META[s].label.toLowerCase()}`)
-    .join(" · ");
 }
 
 export function formatDuration(ms: number): string {

@@ -43,7 +43,7 @@ fn parse_gpu(g: &Value) -> GpuInfo {
         vendor: text("spdisplays_vendor").map(|v| vendor_label(&v)),
         integrated,
         vram,
-        metal_support: text("spdisplays_mtlgpufamilysupport")
+        graphics_api: text("spdisplays_mtlgpufamilysupport")
             .or_else(|| text("spdisplays_metal"))
             .map(|m| metal_label(&m)),
         cores: json_u64(g, "sppci_cores").and_then(|c| u32::try_from(c).ok()),
@@ -52,6 +52,8 @@ fn parse_gpu(g: &Value) -> GpuInfo {
             .and_then(Value::as_array)
             .map(|ds| ds.iter().map(parse_display).collect())
             .unwrap_or_default(),
+        // Driver/kode masalah perangkat/suhu GPU: khusus Windows.
+        ..Default::default()
     }
 }
 
@@ -100,7 +102,7 @@ mod tests {
         assert_eq!(g.vendor.as_deref(), Some("Intel"));
         assert_eq!(g.integrated, Some(true));
         assert_eq!(g.vram.as_deref(), Some("1536 MB (memori bersama)"));
-        assert_eq!(g.metal_support.as_deref(), Some("Metal 3"));
+        assert_eq!(g.graphics_api.as_deref(), Some("Metal 3"));
         assert_eq!(g.displays.len(), 1);
         assert_eq!(g.displays[0].name.as_deref(), Some("Color LCD"));
         assert_eq!(g.displays[0].resolution.as_deref(), Some("1440 x 900"));
@@ -125,7 +127,7 @@ mod tests {
     #[test]
     fn missing_metal_stays_none() {
         let v = serde_json::json!({"SPDisplaysDataType": [{"sppci_model": "GPU X"}]});
-        assert_eq!(parse(&v)[0].metal_support, None);
+        assert_eq!(parse(&v)[0].graphics_api, None);
         assert!(parse(&serde_json::json!({})).is_empty());
     }
 

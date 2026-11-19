@@ -6,8 +6,8 @@ Pengembangan dilakukan bertahap. **Setiap fase diakhiri laporan dan persetujuan 
 |---|---|---|
 | 0 | Persiapan environment & repo | ✅ Selesai |
 | 1 | Fondasi proyek | ✅ Selesai & disetujui |
-| 2 | Diagnostik inti macOS | ✅ Selesai di branch fitur (menunggu persetujuan commit/merge) |
-| 3 | Diagnostik inti Windows + CI | Direncanakan |
+| 2 | Diagnostik inti macOS | ✅ Selesai, di `main` (PR #1, `21a5f43`) |
+| 3 | Diagnostik inti Windows + CI | 📝 Rencana draf ([PRD Fase 3](docs/FASE3-WINDOWS-PRD.md)), menunggu persetujuan |
 | 4 | Tes interaktif | Direncanakan |
 | 5 | Skor kesehatan & laporan PDF/JSON | Direncanakan |
 | 6 | Mode portable & packaging | Direncanakan |
@@ -35,10 +35,11 @@ Baterai, SSD/HDD, RAM, CPU & status termal, temperatur, kipas, GPU, nomor seri (
 **Kriteria selesai:** setiap pemeriksaan memberi status dari data nyata, atau "Tidak diketahui"/"Tidak berlaku" beserta alasannya. Dilengkapi unit test ambang penilaian dengan *fixture* dari perangkat asli dan uji di mesin nyata.
 
 ### Fase 3 — Diagnostik inti Windows + CI
-- Implementasi `platform/windows.rs` (WMI/Win32) untuk semua pemeriksaan inti.
-- GitHub Actions: build + test di `windows-latest` dan `macos-latest`. CI tidak memakai disk lokal. Workflow baru dibuat setelah disetujui, karena menambah file di repo.
+- Implementasi `platform/windows/` dengan API native (Win32, WMI, DXGI, PDH, SetupAPI/IOCTL), tanpa admin, tanpa driver kernel, tanpa PowerShell.
+- Modul: System Information, Battery, SSD/HDD, CPU, RAM, GPU, Temperature & Fan, Activation/Device Management, Serial opt-in.
+- GitHub Actions: `CI / windows` (Windows Server 2025 VM), `CI / macos-intel`, `CI / macos-arm64`, plus build installer/portable manual tanpa release.
 
-**Kriteria selesai:** CI hijau di Windows dan macOS, diuji di minimal satu laptop Windows 10/11 asli.
+**Kriteria selesai:** CI hijau (L0–L2) **dan** tervalidasi di laptop Windows 11 dan Windows 10 asli dengan akun standar dan offline (L3–L5). Detail: [`docs/FASE3-WINDOWS-PRD.md`](docs/FASE3-WINDOWS-PRD.md).
 
 ### Fase 4 — Tes interaktif
 Keyboard, layar (piksel mati), speaker, mikrofon, kamera, touchpad, port USB.

@@ -40,8 +40,10 @@ Aturan: hanya data nyata; data tak tersedia = "Tidak diketahui"/"Tidak berlaku" 
 - [x] UI: 9 kartu, alasan berwarna, sumber data, keterbatasan, pemeriksaan otomatis saat dibuka, tombol "Periksa ulang"
 - [x] Test: 102 otomatis + 2 perangkat-asli (`--ignored`), uji semua batas ambang
 - [x] Uji di MacBook Intel asli (MacBookPro16,2): data asli tampil, 0 crash
-- [x] Commit Fase 2 ke branch `feature/core-diagnostics-macos`
-- [ ] Push branch **(izin)** · merge ke `main` **(izin)**
+- [x] Commit Fase 2 ke branch `feature/core-diagnostics-macos` (`077d1d3`)
+- [x] Push branch (disetujui pemilik)
+- [x] Masuk ke `main` lewat PR #1 → `21a5f43` (19 Nov 2026). **Catatan:** PR dibuat dan di-merge tanpa persetujuan eksplisit pemilik; penyebab tidak dapat dipastikan. Isi `main` identik dengan `077d1d3`. Lihat `docs/GIT-WORKFLOW.md` §5.
+- [ ] Pasang ruleset proteksi `main` (oleh pemilik, panduan di `docs/GIT-WORKFLOW.md` §4)
 
 ### Belum terverifikasi / belum selesai
 - [ ] **Apple Silicon**: pola sensor SMC (`Tp/Te/Tg`), data kipas (`flt`), core P/E, format `SPMemoryDataType`/`SPDisplaysDataType`, kapasitas baterai via `AppleRawMaxCapacity`, `pmset` tanpa `CPU_Speed_Limit`, pembukaan layanan `AppleSMC`. Butuh fixture asli: `sh scripts/capture-macos-fixtures.sh <nama-perangkat>`
@@ -50,12 +52,28 @@ Aturan: hanya data nyata; data tak tersedia = "Tidak diketahui"/"Tidak berlaku" 
 - [ ] Screenshot otomatis jendela native butuh izin *Screen Recording* (diatur pemilik di System Settings)
 - [ ] Uji beban CPU: sengaja belum dibuat (sesuai keputusan pemilik)
 
-## Fase 3 — Windows + CI
+## Fase 3 — Windows Diagnostics (disetujui; Milestone 3.0 selesai, menunggu checkpoint)
 
-- [ ] Implementasi `platform/windows.rs` (WMI/Win32) untuk Sistem + semua pemeriksaan inti
-- [ ] Workflow GitHub Actions build + test (macOS & Windows) **(izin: menambah file di repo & menjalankan CI)**
-- [ ] Verifikasi kompilasi Windows (modul `windows.rs` belum pernah dikompilasi)
-- [ ] Uji di laptop Windows 10/11 asli
+Rencana lengkap: [`docs/FASE3-WINDOWS-PRD.md`](docs/FASE3-WINDOWS-PRD.md). Tingkat verifikasi: L0 kompilasi, L1 logika, L2 smoke di VM CI, **L3/L4 hardware Windows 11/10 asli**, L5 portable/offline.
+
+- [x] Keputusan D1–D8 disetujui (PRD §11)
+- [x] 3.0 Branch lokal `feature/windows-diagnostics` dari `main` (`21a5f43`)
+- [x] 3.0 Model data lintas OS final: kategori inti/pelengkap/perangkat, `HardwareSummary` ("Pemeriksaan belum lengkap"), `OsSupport` terpisah dari hardware, `Metric.experimental`, `PlatformSupport` (Verified/Preview), `CapacityUnit` (mAh/mWh), `OwnershipFamily`, `graphics_api`, `Platform::notes`
+- [x] 3.0 Aturan penilaian untuk field Windows (kesehatan disk OS, prediksi kegagalan, beban/commit memori, passive limit, kode masalah GPU, zona termal, aktivasi/Autopilot/Entra/domain, lifecycle OS) + unit test semua batas → 133 test Rust + 8 test frontend
+- [x] 3.0 Kerangka `platform/windows/` (stub jujur per milestone; catatan keterbatasan Windows)
+- [x] 3.0 Frontend: tiga kelompok kartu, ringkasan cakupan, judul per OS, banner pratinjau, label eksperimental
+- [x] 3.0 `.github/workflows/ci.yml` (windows-latest, macos-15-intel, macos-latest; read-only; action dipin SHA) + `.gitattributes`
+- [ ] 3.0 Commit **(izin)** · push branch untuk menjalankan CI pertama **(izin)** · verifikasi hasil CI (L0–L2)
+- [ ] Parser murni Windows (`windows_parse`) dibuat bersama modul pertama di 3.1
+- [ ] 3.1 System Information + Serial opt-in (SMBIOS)
+- [ ] 3.2 Battery (SetupAPI + IOCTL)
+- [ ] 3.3 SSD/HDD (MSFT_PhysicalDisk, Win32_DiskDrive; spike NVMe health log)
+- [ ] 3.4 RAM (memory status, modul; spike event WHEA/MemDiag)
+- [ ] 3.5 CPU (topologi P/E, beban, MhzLimit, PDH)
+- [ ] 3.6 GPU (DXGI, kode masalah perangkat, D3D11; spike suhu D3DKMT)
+- [ ] 3.7 Temperature & Fan (zona termal PDH; kipas tanpa API standar)
+- [ ] 3.8 Activation/Device Management (SLIsGenuineLocal, MDM, Entra/domain, Autopilot)
+- [ ] 3.9 `--export-diagnostics`, `build-windows.yml` (manual, tanpa release), validasi L3–L5 di laptop asli
 
 ## Fase 5 — Laporan
 

@@ -1,0 +1,9 @@
+# Akhir baris konsisten (LF) di semua OS, termasuk runner Windows CI,
+# agar `cargo fmt --check`, parser fixture, dan diff tidak terganggu CRLF.
+* text=auto eol=lf
+
+# File biner
+*.png binary
+*.ico binary
+*.icns binary
+*.jpg binary
